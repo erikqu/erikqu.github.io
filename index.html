@@ -2,25 +2,41 @@
 <html>
 	<head>
 		<!--importing font(s)-->
-		<link href="https://fonts.googleapis.com/css?family=Open+Sans:300" rel="stylesheet">
+		<link href="https://fonts.googleapis.com/css?family=Open+Sans:300|Roboto|Space Mono" rel="stylesheet">
 		<title>Erik Quintanilla</title>
 		<link rel="stylesheet" type="text/css" href="css/main.css">
 	</head>
-	<body>
-		<nav>
-    		<ul>
-        		<li><a href="index.html">Home</a></li>
-        		<li><a href = "filename" download = "filename">Resume</a></li>
-        		<li><a href="/projects/projects.html">Projects</a></li>
+	<body>	<nav>
+    		<ul id = "header">
+        		<li style = "font-family: 'Space Mono', 'helvetica'; list-style: none; font-size: 60px;">/INDEX.html</a></li>
     		</ul>
-		</nav>
+    	</nav>
 		<div class="container">
-    		<div class="blurb">
-    			<img src="eq.jpg">
-        		<h1>Erik Quintanilla</h1>
-    		</div><!-- /.blurb -->
-    		<p>I'm a major in computer science from the Illinois Institute of Technology.
-    		</p>
+    		<div>
+        		<h2>Erik Quintanilla</h2>
+    		</div>
+    		<ul id = "bio">
+    			<li> I'm a computer science student from the Illinois Institute of Technology.  I have heavy interests in natural language processing and computer security (and blockchain!). 
+    				I plan on making my software more relevant this year! <br>I love software,
+    				I love everything, and that is not a joke; my interests stem from things modeled and simulated on machines, most of the time.  I have a deep love of both physics and chemistry.  I <span>love </span>Feynman.</li>
+    		</ul>
+    		<h2>Projects</h2>
+    		<ul>
+    			<li class = "post"> <p class = "postname">WIREDSummarizer </p>
+    				<br> <img src= "screenshots/wiredsum1.PNG" ><br><br>
+    				I absolutely love everything about WIRED. But sometimes I don't have the time to read absolutely all the 
+    				articles that I think are interesting, so I made WIREDSummarizer, using textRank's NLP and some scraping techniques, I was
+    				able to pull the text, treat it, and summarize it in 150 words or less!  This was also the first time I had actually run 
+    				into code outside of class that ran so slow it would have to be treated.
+
+    			</li>
+    			<li class = "post"> <p class = "postname"> cryptoTicker </p>
+    				<br> <img src= "screenshots/tickergui.PNG" ><br><br>
+    				I wanted my first out of school project to be something that I was actually interested in, so I made it about crypto!
+    				It auto-updates about every 20 seconds, and pulls the data from CoinMarketCap.  This was also the very first time I 
+    				made an actual window for a program I've made.  I think it's great.  
+    			</li>
+    	</ul>
 		</div><!-- /.container -->
 		<footer>
     		<ul>
