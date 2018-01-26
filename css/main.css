@@ -1,19 +1,20 @@
 body {
-    margin: 60px auto;
-    width: 70%;
+    margin: 10% auto;
+    width: 60%;
 }
+
 nav ul, footer ul {
     font-size: 20px;
     font-family:'Open Sans', 'Helvetica', 'Arial', 'Sans-Serif';
     padding: 0px;
     list-style: none;
-    font-weight: bold;
 }
 nav ul li, footer ul li {
     display: inline;
     margin-right: 20px;
 }
 a {
+    font-size: 0.8em;
     text-decoration: none;
     color: #999;
 }
@@ -24,15 +25,15 @@ h1 {
     font-size: 2.5em;
     font-family:'Open Sans' ,'Helvetica', 'Arial', 'Sans-Serif';
 }
-p {
+/*p {
     font-family:'Open Sans' ,'Helvetica', 'Arial', 'Sans-Serif';
     font-size: 1.5em;
     line-height: 1em;
     color: #333;
-}
+}*/
 footer {
     border-top: 1px solid #d5d5d5;
-    font-size: .8em;
+    font-size: .5em;
 }
 
 ul.posts { 
@@ -43,8 +44,29 @@ ul.posts {
 ul.posts li {
     list-style: none;
 }
-img {
-    border-radius: 20px;
-    width: 7%;
-    height: 7%
+h2{
+    font-family: 'Open Sans' ,'Helvetica', 'Arial';
+    font-size: 30px;
 }
+#bio{
+    font-family: 'Roboto' ,'Helvetica', 'Arial', 'Sans-Serif';
+    list-style: none;
+}
+.post{
+    list-style: none;
+    text-indent: 10mm;
+    font-family: 'Roboto' ,'Helvetica', 'Arial', 'Sans-Serif';
+}
+.postname{
+    text-indent: -10mm;
+    font-family: 'Space Mono', 'Helvetica';
+    font-size: 1.5em;
+}
+img{
+    height: 20%;
+    width: 50%;
+}
+span{
+    font-style: italic;
+}
+
