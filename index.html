@@ -17,13 +17,45 @@
     		</div>
     		<ul id = "bio">
 
-    			<li> I'm a computer science student from the Illinois Institute of Technology.  I have heavy interests in computer vision and deep learning. 
-    				I plan on making my software more relevant this year! <br>I love software,
-    				I love everything; my interests stem from things modeled and simulated on machines, most of the time.  I have a deep love of both physics and chemistry.  I <span>love </span>Feynman.</li>
+    			<li> I'm a junior in Computer Science  from the Illinois Institute of Technology.  I have heavy interests in computer vision and deep learning. 
+					I've been programming for a while but I have a fling with Physics.  Feynman is a big inspiration of mine.</li>
+					<br>
+					I'm very excited about Nvidia's new RTX GPUs, but not everyone is.  Check out my Medium article:  <a href="https://medium.com/@erikqu/why-is-real-time-ray-tracing-a-big-deal-688b79287325" style = "font-size: 12pt">Why is Ray Tracing a Big Deal?</a>
 
        		</ul>
     		<h2>Projects</h2>
     		<ul>
+				    <li class = "post"> <p class = "postname"> Personalized Image Tagging </p>
+					Over the summer of 2018 I had the amazing opportunity to do research at the University of Central Florida at CRCV under Dr. Mubarak Shah and Dr. Yogesh Rawat.  We developed a model here shown below that would take past 
+					user history into account when generating image tags for a given image.  
+					<br>
+					This in turn gives us better image labels. I will first delve into some highlights about the project and then get into specifics about the model below. 
+					<br>
+					<br>
+					<ul>
+						<li> We made use of NUS-WIDE and YFCC100M, YFCC100M itself being ~1TB of image/user data.</li>
+						<li> Since these datasets are based on Flickr, the user data was retrieved manually for every user.</li>
+						<li> This is the first time deep learning is used to condense user preferences to generate image labels. </li>
+						<li> Provides scalable solution for generating tags using deep learning. </li>
+						<li> Adversarial learning used in the process, making use of a discriminator to generate better and better tags. </li>
+						<li> ResNet-50 used as our main CNN here. </li>
+						<li> Everything here was done mainly in Keras, although some of our earlier models made use of Caffe.</li>
+					</ul>
+						<br>
+					<br> <img src = "screenshots/model.PNG"><br>
+							<ul>
+								<li> Once the user preferences gathered, these are encoded as vectors, and then depending on the frequency of the tag, the frequency is placed in the index corresponding to the tag. </li>
+								<li> The Autoencoder then takes these in, and then the latent space representation is used to make our prediction since we want similar users to appear similar in order to avoid over-generalizing. </li>
+								<li> Skip-connections are used in the Autoencoder for our reconstruction loss. </li>
+								<li> We then repeat this condensed latent space representation from our Autoencoder to concatenate with the output of an intermediate convolution in order to take these preferences into account at every single pixel location. </li>
+								<li> This is then fed into another small CNN that then generates our personalized image tags. </li>
+								<li> The rest of ResNet just computes regular unpersonalized tags. </li>
+								<li> <b>Accuracy of this model in Top-K, K@3, is 86% on NUS-WIDE.</b> Publication coming soon.. </li>
+							</ul>
+    				<br> <img src= "screenshots/tagging.PNG" ><br>
+					
+    				*Examples from NUS-WIDE 
+    			</li>
     			<li class = "post"> <p class = "postname">WIREDSummarizer </p>
     				<br> <img src= "screenshots/wiredsum1.PNG" ><br><br>
     				I absolutely love everything about WIRED. But sometimes I don't have the time to read absolutely all the 
@@ -39,7 +71,7 @@
     				made an actual window for a program I've made.  I think it's great.  
     			</li>
     	</ul>
-		</div><!-- /.container -->
+		</div>
 		<footer>
     		<ul>
         		<li><a href="https://github.com/erikqu">Github</a></li>
