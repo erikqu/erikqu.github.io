@@ -18,7 +18,7 @@
     		<ul id = "bio">
 
     			<li> I'm a junior in Computer Science  from the Illinois Institute of Technology.  I have heavy interests in computer vision and deep learning. 
-					I've been programming for a while but I have a fling with Physics.  Feynman is a big inspiration of mine.</li>
+					I've been programming for a while but I have a fling with Physics.  Feynman is a big inspiration of mine.  I'm currently diving into different problems relating to more classical machine learning.  I'm part of a new club here at IIT, ML@IIT, we're trying to bring networking, tutorials, Kaggle challenges to the general community here that is interested in machine learning and deep learning. </li>
 					<br>
 					I'm very excited about Nvidia's new RTX GPUs, but not everyone is.  Check out my Medium article:  <a href="https://medium.com/@erikqu/why-is-real-time-ray-tracing-a-big-deal-688b79287325" style = "font-size: 12pt">Why is Ray Tracing a Big Deal?</a>
 
@@ -38,23 +38,17 @@
 						<li> This is the first time deep learning is used to condense user preferences to generate image labels. </li>
 						<li> Provides scalable solution for generating tags using deep learning. </li>
 						<li> Adversarial learning used in the process, making use of a discriminator to generate better and better tags. </li>
-						<li> ResNet-50 used as our main CNN here. </li>
+						<li> We leverage an AE to encode the user vectors, which is then combined with intermediate output of ResNet-50. </li>
 						<li> Everything here was done mainly in Keras, although some of our earlier models made use of Caffe.</li>
 					</ul>
 						<br>
-					<br> <img src = "screenshots/model.PNG"><br>
+					<br> <img class = "pit" src = "screenshots/model.PNG"><br>
 					    <br>
 							<ul>
-								<li> Once the user preferences gathered, these are encoded as vectors, and then depending on the frequency of the tag, the frequency is placed in the index corresponding to the tag. </li>
-								<li> The Autoencoder then takes these in, and then the latent space representation is used to make our prediction since we want similar users to appear similar in order to avoid over-generalizing. </li>
-								<li> Skip-connections are used in the Autoencoder for our reconstruction loss. </li>
-								<li> We then repeat this condensed latent space representation from our Autoencoder to concatenate with the output of an intermediate convolution in order to take these preferences into account at every single pixel location. </li>
-								<li> This is then fed into another small CNN that then generates our personalized image tags. </li>
-								<li> The rest of ResNet just computes regular unpersonalized tags. </li>
-								<li> <b>Accuracy of this model in Top-K, K@3, is 86% on NUS-WIDE.</b> Publication coming soon.. </li>
+								<li> <b>Accuracy of this model in Top-K, K@3, is 91% on NUS-WIDE (state of the art),</b> Publication coming soon..</li>
 							</ul>
 					    <br>
-    				<br> <img src= "screenshots/tagging.PNG" ><br>
+    				<br> <img class = "pit" src= "screenshots/tagging.PNG" ><br>
 					
     				*Examples from NUS-WIDE 
     			</li>
