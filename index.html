@@ -1,80 +1,39 @@
 <!DOCTYPE html>
-<html>
-	<head>
-		<!--importing font(s)-->
-		<link href="https://fonts.googleapis.com/css?family=Open+Sans:300|Roboto|Space Mono" rel="stylesheet">
-		<title>Erik Quintanilla</title>
-		<link rel="stylesheet" type="text/css" href="css/main.css">
-	</head>
-	<body>	<nav>
-    		<ul id = "header">
-        		<li style = "font-family: 'Space Mono', 'helvetica'; list-style: none; font-size: 60px;">/INDEX.html</a></li>
-    		</ul>
-    	</nav>
-		<div class="container">
-    		<div>
-        		<h2>Erik Quintanilla</h2>
-    		</div>
-    		<ul id = "bio">
-
-    			<li> I'm a junior in Computer Science  from the Illinois Institute of Technology.  I have heavy interests in computer vision and deep learning. 
-					I've been programming for a while but I have a fling with Physics.  Feynman is a big inspiration of mine.  I'm currently diving into different problems relating to more classical machine learning.  I'm part of a new club here at IIT, ML@IIT, we're trying to bring networking, tutorials, Kaggle challenges to the general community here that is interested in machine learning and deep learning. </li>
-					<br>
-					I'm very excited about Nvidia's new RTX GPUs, but not everyone is.  Check out my Medium article:  <a href="https://medium.com/@erikqu/why-is-real-time-ray-tracing-a-big-deal-688b79287325" style = "font-size: 12pt">Why is Ray Tracing a Big Deal?</a>
-
-       		</ul>
-    		<h2>Projects</h2>
-    		<ul>
-				    <li class = "post"> <p class = "postname"> Personalized Image Tagging </p>
-					Over the summer of 2018 I had the amazing opportunity to do research at the University of Central Florida at CRCV under Dr. Mubarak Shah and Dr. Yogesh Rawat.  We developed a model here shown below that would take past 
-					user history into account when generating image tags for a given image.  
-					<br>
-					This in turn gives us better image labels. I will first delve into some highlights about the project and then get into specifics about the model below. 
-					<br>
-					<br>
-					<ul>
-						<li> We made use of NUS-WIDE and YFCC100M, YFCC100M itself being ~1TB of image/user data.</li>
-						<li> Since these datasets are based on Flickr, the user data was retrieved manually for every user.</li>
-						<li> This is the first time deep learning is used to condense user preferences to generate image labels. </li>
-						<li> Provides scalable solution for generating tags using deep learning. </li>
-						<li> Adversarial learning used in the process, making use of a discriminator to generate better and better tags. </li>
-						<li> We leverage an AE to encode the user vectors, which is then combined with intermediate output of ResNet-50. </li>
-						<li> Everything here was done mainly in Keras, although some of our earlier models made use of Caffe.</li>
-						<li> <b>Accuracy of this model in Top-K, K@3, is 91% on NUS-WIDE (state of the art),</b> Publication coming soon..</li>
-					</ul>
-						<br>
-					<br> <img class = "pit" src = "screenshots/model.PNG"><br>
-					    <br>
-							<ul>
-
-							</ul>
-					    <br>
-    				<br> <img class = "pit" src= "screenshots/tagging.PNG" ><br>
-					
-    				*Examples from NUS-WIDE 
-    			</li>
-    			<li class = "post"> <p class = "postname">WIREDSummarizer </p>
-    				<br> <img src= "screenshots/wiredsum1.PNG" ><br><br>
-    				I absolutely love everything about WIRED. But sometimes I don't have the time to read absolutely all the 
-    				articles that I think are interesting, so I made WIREDSummarizer. Using textRank's NLP and some scraping techniques, I was
-    				able to pull the text, treat it, and summarize it in 150 words or less!  This was also the first time I had actually run 
-    				into code outside of class that ran so slow it would have to be treated with a little Cython.
-
-    			</li>
-    			<li class = "post"> <p class = "postname"> cryptoTicker </p>
-    				<br> <img src= "screenshots/tickergui.PNG" ><br><br>
-    				I wanted my first out of school project to be something that I was actually interested in, so I made it about crypto!
-    				It auto-updates about every 20 seconds, and pulls the data from CoinMarketCap.  This was also the very first time I 
-    				made an actual window for a program I've made.  I think it's great.  
-    			</li>
-    	</ul>
-		</div>
-		<footer>
-    		<ul>
-        		<li><a href="https://github.com/erikqu">Github</a></li>
-        		<li><a href = "https://twitter.com/ErikQuintanito">Twitter</a></li>
-        		<li><a href="mailto:eeerik8@gmail.com">Email</a></li>
-			</ul>
-		</footer>
-	</body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css" integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css?family=Oswald&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <title>Erik Quintanilla </title>
+</head>
+<body>
+    <div class="grid-2">
+        <div class="section-1">
+            <h2>Erik Quintanilla</h2>
+            <p>B.S. Computer Science, May 2020 @ IIT</p>
+            <p>equintanilla@hawk.iit.edu </p>
+            <a href="http://linkedin.com/in/erikquintanilla"><i class="fab fa-linkedin"></i></a>
+            <a href="http://github.com/erikqu"><i class="fab fa-github"></i></a>
+            <a href="http://twitter.com/erikquintanito"><i class="fab fa-twitter"></i></a>
+             <a href="http://twitter.com/erikquintanito"><i class="far fa-file"></i></a>
+            
+        </div>
+        <div class="section-2">
+            <hr>
+            <h2>Articles</h2>
+            <p> I'm very excited about Nvidia's new RTX GPUs, but not everyone is.  Check out my Medium article:  <a id = "article-link"href="https://medium.com/@erikqu/why-is-real-time-ray-tracing-a-big-deal-688b79287325" style = "font-size: 12pt">Why is Ray Tracing a Big Deal?</a>
+</p>
+            <hr>
+            <h2>Selected Projects</h2>
+            <a href="./projects/ALPIT.html">Adversarial Learning for Personalized Image Tagging</a>
+            <a href="./projects/CPP.html">Chicago Pothole Project</a>
+            <a href="./projects/enet.html">EnhanceNet Implementation</a>
+            <a href="./projects/wired.html">Wired Article Summarizer</a>
+            <hr>
+        </div>
+    </div>
+</body>
 </html>

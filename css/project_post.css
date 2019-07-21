@@ -1,0 +1,41 @@
+#main-content{
+    margin-top: 15vh; 
+    margin-left: 10vw;
+    margin-right: 10vw;
+}
+
+
+h1{
+    font-family: Oswald, Roboto, Helvetica; 
+    padding-left: 1%;
+    border-left: 2px solid #ff6666;
+}
+
+
+p{
+    font-family: Roboto, Helvetica; 
+    padding-top: 1vh;
+    margin-left: 6vw;
+    margin-right: 6vw;
+}
+
+
+ul{
+    list-style-type: square;
+    font-family: Roboto, Helvetica;
+    margin-left: 6vw;
+}
+
+
+img{
+    margin-top: 2%;
+    margin-left: 10vw;
+    max-width: 100%; 
+    width: 80%; 
+    height: 35%;
+}
+
+a{
+    color: #ff6666; 
+    text-decoration: none;
+}
