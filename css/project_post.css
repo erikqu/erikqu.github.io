@@ -9,10 +9,12 @@ h1{
     font-family: Oswald, Roboto, Helvetica; 
     padding-left: 1%;
     border-left: 2px solid #ff6666;
+    font-size: 3rem;
 }
 
 
 p{
+    font-size: 1.3rem;
     font-family: Roboto, Helvetica; 
     padding-top: 1vh;
     margin-left: 6vw;
@@ -21,6 +23,7 @@ p{
 
 
 ul{
+    font-size: 1.3rem;
     list-style-type: square;
     font-family: Roboto, Helvetica;
     margin-left: 6vw;
