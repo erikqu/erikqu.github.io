@@ -45,11 +45,14 @@ a{
     padding-left: 3%;
     padding-right: 3%;
     font-weight: italic;
+    border-left: 2px solid #ff6666;
 }
 
 .section-1 a{
     font-size: 1.5rem;
     padding: 10px;
+    font-style: bold;
+    color: black;
 }
 /* section 2 */
 .section-2{
