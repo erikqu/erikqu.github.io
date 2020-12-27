@@ -45,7 +45,7 @@ a{
     padding-left: 3%;
     padding-right: 3%;
     font-weight: italic;
-    border-left: 2px solid #98BDFF;
+    border-left: 2px solid #7DABFD;
 }
 
 .section-1 a{
@@ -80,7 +80,7 @@ a{
     font-size: 1.2rem;
     padding-left: 0;
     width: 100%;
-    color: #98BDFF;
+    color: #7DABFD;
 }
 
 #article-link{
