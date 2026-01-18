@@ -1,44 +1,58 @@
-#main-content{
-    margin-top: 15vh; 
-    margin-left: 10vw;
-    margin-right: 10vw;
+body {
+    background-color: #FCFCF5;
+    color: #1a1a1a;
+    font-family: Charter, "Bitstream Charter", "Sitka Text", "Cambria", Georgia, serif;
+    font-size: 1.1rem;
+    line-height: 1.7;
+    margin: 0;
+    padding: 0;
 }
 
-
-h1{
-    font-family: Oswald, Roboto, Helvetica; 
-    padding-left: 1%;
-    border-left: 2px solid #ff6666;
-    font-size: 2.6rem;
+#main-content {
+    max-width: 65ch;
+    margin: 15vh auto;
+    padding: 0 20px;
 }
 
-
-p{
-    font-size: 1.2rem;
-    font-family: Roboto, Helvetica; 
-    padding-top: 1vh;
-    margin-left: 6vw;
-    margin-right: 6vw;
+h1 {
+    font-weight: 700;
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+    padding-left: 1rem;
+    border-left: 4px solid #ff6666;
+    letter-spacing: -0.01em;
 }
 
+p {
+    margin-bottom: 1.5rem;
+}
 
-ul{
-    font-size: 1.2rem;
+ul {
     list-style-type: square;
-    font-family: Roboto, Helvetica;
-    margin-left: 6vw;
+    padding-left: 2rem;
+    margin-bottom: 2rem;
 }
 
-
-img{
-    margin-top: 2%;
-    margin-left: 10vw;
-    max-width: 100%; 
-    width: 80%; 
-    height: 20%;
+li {
+    margin-bottom: 0.75rem;
 }
 
-a{
-    color: #ff6666; 
+img {
+    display: block;
+    margin: 2.5rem auto;
+    max-width: 100%;
+    height: auto;
+    border-radius: 2px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+a {
+    color: #ff6666;
     text-decoration: none;
+    border-bottom: 1px solid rgba(255, 102, 102, 0.2);
+    transition: border-color 0.2s ease;
+}
+
+a:hover {
+    border-bottom: 1px solid #ff6666;
 }

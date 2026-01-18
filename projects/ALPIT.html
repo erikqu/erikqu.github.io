@@ -1,41 +1,35 @@
 <!DOCTYPE html>
-<link href="../css/project_post.css" rel = "stylesheet">
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>ALPIT</title>
+    <link href="../css/project_post.css" rel="stylesheet">
+</head>
+<body>
+    <div id="main-content">
+        <h1>Adversarial Learning for Personalized Image Tagging</h1>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <p>
+            Over the summer of 2018 I had the amazing opportunity to do research at the University of Central Florida at CRCV under Dr. Mubarak Shah and Dr. Yogesh Rawat. We developed a model here shown below that would take past user history into account when generating image tags for a given image. 
+            This in turn gives us better image labels. I will first delve into some highlights about the project and then get into specifics about the model below.
+        </p>
+            
+        <ul>
+            <li>We made use of NUS-WIDE and YFCC100M, YFCC100M itself being ~1TB of image/user data.</li>
+            <li>Since these datasets are based on Flickr, the user data was retrieved manually for every user.</li>
+            <li>This is the first time deep learning is used to condense user preferences to generate image labels.</li>
+            <li>Provides scalable solution for generating tags using deep learning.</li>
+            <li>Adversarial learning used in the process, making use of a discriminator to generate better and better tags.</li>
+            <li>We leverage an AE to encode the user vectors, which is then combined with intermediate output of ResNet-50.</li>
+            <li>Everything here was done mainly in Keras, although some of our earlier models made use of Caffe.</li>
+            <li>Accuracy of this model in Top-K, K@3, is 91% on NUS-WIDE (state of the art).</li>
+            <li><b>Submitted to ACM-MM 2019</b></li>
+        </ul>
 
-<html>
-    <title> ALPIT </title>
-    
-    <div id = "main-content">
-    <h1> Adversarial Learning for Personalized Image Tagging </h1>
-
-    <p> 
-        Over the summer of 2018 I had the amazing opportunity to do research at the University of Central Florida at CRCV under Dr. Mubarak Shah and Dr. Yogesh Rawat. We developed a model here shown below that would take past user history into account when generating image tags for a given image. 
-        This in turn gives us better image labels. I will first delve into some highlights about the project and then get into specifics about the model below.
-    </p>
-        
-    <div>
-                        <ul>
-                            <li>We made use of NUS-WIDE and YFCC100M, YFCC100M itself being ~1TB of image/user data.</li>
-                            <li> Since these datasets are based on Flickr, the user data was retrieved manually for every user.</li>
-                            <li> This is the first time deep learning is used to condense user preferences to generate image labels. </li>
-                            <li> Provides scalable solution for generating tags using deep learning. </li>
-                            <li> Adversarial learning used in the process, making use of a discriminator to generate better and better tags. </li>
-                            <li> We leverage an AE to encode the user vectors, which is then combined with intermediate output of ResNet-50. </li>
-                            <li> Everything here was done mainly in Keras, although some of our earlier models made use of Caffe.</li>
-                            <li> Accuracy of this model in Top-K, K@3, is 91% on NUS-WIDE (state of the art)</li>
-                            <li> <b>Submitted to ACM-MM 2019</b></li>
-                        </ul>
+        <img class="pit" src="../screenshots/model.PNG" alt="Model Architecture">
+        <img class="pit" src="../screenshots/tagging.PNG" alt="Tagging Results">
     </div>
-
-
-    <img class = "pit" src = "../screenshots/model.PNG">
-    <img class = "pit" src= "../screenshots/tagging.PNG" >
-
-
-
-
+</body>
 </html>
-
