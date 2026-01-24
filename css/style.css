@@ -1,3 +1,7 @@
+* {
+    box-sizing: border-box;
+}
+
 body {
     max-width: 65ch;
     margin: 15vh auto;
@@ -55,4 +59,13 @@ a:hover {
 
 .bio p {
     margin-bottom: 0.75rem;
+}
+
+@media (max-width: 1000px) {
+    body {
+        max-width: none;
+        margin-left: 10vh;
+        margin-right: 10vh;
+        padding: 0;
+    }
 }
