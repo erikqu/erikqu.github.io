@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Demo 2 figure: 'probes that cheat' — shortcut-control gates on CounterFact.
+"""Demo 2 figure: 'probes that cheat', shortcut-control gates on CounterFact.
 
 A shallow residual-stream probe looks like early factual recall, but a content-blind
 frequency prior explains much of the shallow margin. Successive gates strip priors;
