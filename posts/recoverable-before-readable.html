@@ -126,7 +126,7 @@
     <figure id="concept-fig" class="fig">
         <svg id="concept" viewBox="0 0 780 350" role="img" aria-labelledby="concept-t concept-d" xmlns="http://www.w3.org/2000/svg">
             <title id="concept-t">An endpoint probe predicts the final node from a middle layer</title>
-            <desc id="concept-d">A transformer's residual stream runs left to right along the layer axis. A linear endpoint probe taps a middle layer (l*) and, via a dashed arch, predicts the final node L --- the model's answer --- several layers before that answer becomes readable from the output.</desc>
+            <desc id="concept-d">A transformer's residual stream runs left to right along the layer axis. A small endpoint probe (an MLP) taps a middle layer (l*) and, via a dashed arch, predicts the final node L --- the model's answer --- several layers before that answer becomes readable from the output.</desc>
             <defs>
                 <marker id="ahB" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#2563eb"/></marker>
                 <marker id="ahV" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#7c3aed"/></marker>
@@ -219,8 +219,8 @@
             </g>
         </svg>
         <figcaption>
-            Endpoint coordinates. The residual stream runs horizontally across layers. A single linear
-            <em>endpoint probe</em> at a middle layer&nbsp;&#8467;* sends a dashed arch to the final node&nbsp;L,
+            Endpoint coordinates. The residual stream runs horizontally across layers. A small
+            <em>endpoint probe</em> (an MLP) at a middle layer&nbsp;&#8467;* sends a dashed arch to the final node&nbsp;L,
             predicting the model&rsquo;s answer (blue star) several layers before that answer becomes readable from
             the output (violet, at&nbsp;L).
         </figcaption>

@@ -94,3 +94,25 @@ def read_csv(path: Path) -> dict[str, list]:
 
 def as_float(xs: list) -> list[float]:
     return [float(x) for x in xs]
+
+
+def blog_cmap():
+    """Blue-to-violet spectrogram colormap matching the blog palette."""
+    from matplotlib.colors import LinearSegmentedColormap
+
+    return LinearSegmentedColormap.from_list(
+        "blog_mel",
+        [BLUE_DK, BLUE, SKY, VIOLET, VIOLET_DK],
+        N=256,
+    )
+
+
+def strip_text(ax, *, ticks: bool = False) -> None:
+    """Remove all text from an axes — labels live in HTML captions."""
+    ax.set_title("")
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    if not ticks:
+        ax.set_xticks([])
+        ax.set_yticks([])
+    ax.legend_ = None

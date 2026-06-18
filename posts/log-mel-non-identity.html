@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You Can't Round-Trip Audio Through Log-Mel</title>
+    <link href="../css/style.css" rel="stylesheet">
+    <link href="../css/post.css" rel="stylesheet">
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']],
+                displayMath: [['\\[', '\\]']],
+            },
+            svg: { fontCache: 'global' },
+        };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    <style>
+        .post-nav { font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .hero-sub {
+            font-size: 1.2rem; color: #444; font-style: italic;
+            line-height: 1.5; margin: -0.6rem 0 1.6rem 0;
+        }
+        .fig { margin: 2.6rem 0 2.2rem 0; }
+        .fig img { width: 100%; height: auto; display: block; background: transparent; }
+        .fig figcaption {
+            font-size: 0.85rem; color: #666; font-style: italic;
+            margin-top: 0.7rem; text-align: center; line-height: 1.5;
+        }
+        .fig-wide { width: 100%; margin-left: 0; }
+        h3 .num { color: #0f4dd0; font-weight: 700; margin-right: 0.4rem; }
+        .callout { background: transparent; }
+        ul.summary { line-height: 1.6; padding-left: 1.2rem; }
+        ul.summary li { margin-bottom: 0.6rem; }
+        a.cite { font-size: 0.62em; vertical-align: super; line-height: 0; margin-left: 1px;
+                 color: #0f4dd0; text-decoration: none; font-weight: 600; }
+        a.cite::before { content: "["; }
+        a.cite::after  { content: "]"; }
+        a.cite:hover { text-decoration: underline; }
+        .references li:target { background: #fff7cc; }
+        .references a { color: #0f4dd0; text-decoration: none; }
+        .references a:hover { text-decoration: underline; }
+        table.data { font-size: 0.88rem; }
+        .math-block {
+            margin: 1.8rem 0; padding: 1.1rem 0;
+            overflow-x: auto; text-align: center;
+        }
+        .math-block mjx-container { margin: 0.35rem 0 !important; }
+        .audio-grid { display: grid; gap: 0.85rem; margin: 1.4rem 0 1.8rem 0; }
+        .audio-item {
+            padding: 0.75rem 0.9rem; border-left: 3px solid #2563eb;
+            background: rgba(241, 245, 251, 0.55);
+        }
+        .audio-item label {
+            display: block; font-size: 0.88rem; font-weight: 600;
+            color: #334155; margin-bottom: 0.45rem;
+        }
+        .audio-item audio { width: 100%; height: 36px; }
+        .audio-item.violet { border-left-color: #7c3aed; background: rgba(244, 238, 251, 0.55); }
+        .audio-item.dim { border-left-color: #1e3a8a; background: rgba(237, 233, 254, 0.45); }
+        @media (max-width: 680px) {
+            .fig-wide { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .fig-wide img { min-width: 520px; }
+            .math-block { font-size: 0.92rem; }
+        }
+    </style>
+</head>
+<body>
+    <p class="post-nav"><a href="../index.html">&larr; Home</a></p>
+
+    <h1>You Can&rsquo;t Round-Trip Audio Through Log-Mel</h1>
+    <p class="hero-sub">
+        Why \(x \to \text{mel} \to \hat{x}\) is lossy, why the literature built vocoders to cope, and when
+        that gap is worth closing.
+    </p>
+    <p class="post-meta">Erik Quintanilla &middot; June 2026</p>
+
+    <p class="lede">
+        Using a real LibriSpeech-derived clip<a class="cite" href="#ref-8">8</a>, every TTS and voice pipeline eventually asks the same question: can I encode audio to log-mel,
+        manipulate it, and decode back without loss? <span class="highlight">No.</span> The forward map
+        is cheap and deterministic; the reverse map is not an inverse. Phase is discarded, frequency bins
+        are merged, and many waveforms share the same mel. That is why the field invented vocoders:
+        learned decoders that guess the information mel never stored.
+    </p>
+
+    <div class="math-block">
+        \[
+            \Phi:\ x(t)\ \longmapsto\ S \in \mathbb{R}^{M \times T},
+            \qquad
+            \nexists\ \Phi^{-1}\ \text{s.t.}\ \Phi^{-1}(\Phi(x)) = x
+        \]
+    </div>
+
+    <figure class="fig fig-wide">
+        <img src="../blog_figures/outputs/fig_mel_pipeline.svg"
+             alt="Forward encode path and lossy decode return through log-mel.">
+        <figcaption>
+            <strong>Top (blue):</strong> encode \(x \to |X| \to ES \to \log\). <strong>Dashed return (violet):</strong>
+            any decode \(\hat{x} \neq x\). Branching marks information discarded before mel.
+        </figcaption>
+    </figure>
+
+    <h3><span class="num">1.</span> What mel throws away</h3>
+    <p>
+        Write the forward map as composition of three steps. Magnitude STFT drops phase; mel projection
+        compresses linear frequency bins; log compression is invertible alone but cannot undo the first two.
+    </p>
+
+    <div class="math-block">
+        \[
+            |X(f,t)| = \bigl|\mathrm{STFT}(x)\bigr|,
+            \qquad
+            M = E\,|X|^{\odot 2},
+            \qquad
+            S = 10\log_{10}\!\left(\frac{M}{\mathrm{ref}}\right)
+        \]
+    </div>
+
+    <table class="data">
+        <thead>
+            <tr><th>Stage</th><th>Map</th><th>Why \(\Phi \neq \mathrm{id}\)</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Magnitude</td>
+                <td>\(x \mapsto |X|\)</td>
+                <td>Phase discarded; \(\infty\)-many \(x\) share one \(|X|\)<a class="cite" href="#ref-1">1</a></td>
+            </tr>
+            <tr>
+                <td>Mel bank</td>
+                <td>\(|X| \mapsto E|X|^{\odot 2}\), &nbsp;\(E \in \mathbb{R}^{M \times F}\)</td>
+                <td>\(F \gg M\); \(E^{+}E \neq I\)<a class="cite" href="#ref-1">1</a></td>
+            </tr>
+        </tbody>
+        <caption>Composed, audio\(\to\)mel\(\to\)audio cannot be lossless even when \(S\) is copied exactly.</caption>
+    </table>
+
+    <p>
+        Take a real LibriSpeech clip and resynthesize the same magnitude with random phase: waveforms diverge, mel matches. Formally,
+        \(\Phi(x_1) = \Phi(x_2)\) while \(x_1 \neq x_2\).
+    </p>
+
+    <div class="audio-grid">
+        <div class="audio-item">
+            <label>LibriSpeech sample \(x\)</label>
+            <audio controls preload="metadata" src="../blog_figures/outputs/audio/01_original.wav"></audio>
+        </div>
+        <div class="audio-item violet">
+            <label>Phase-scrambled \(\tilde{x}\), same \(\Phi(x)=\Phi(\tilde{x})\)</label>
+            <audio controls preload="metadata" src="../blog_figures/outputs/audio/02_phase_scrambled.wav"></audio>
+        </div>
+    </div>
+
+    <figure class="fig fig-wide">
+        <img src="../blog_figures/outputs/fig_mel_phase_collision.svg"
+             alt="Two waveforms and one shared log-mel spectrogram.">
+        <figcaption>
+            <strong>Top:</strong> original (blue) vs phase-scrambled (violet) waveforms.
+            <strong>Middle:</strong> two identical log-mel panels. <strong>Bottom:</strong> zero-difference strip.
+        </figcaption>
+    </figure>
+
+    <figure class="fig fig-wide">
+        <img src="../blog_figures/outputs/fig_mel_filterbank.svg"
+             alt="Mel filterbank triangles and compressed spectral energy.">
+        <figcaption>
+            <strong>Top:</strong> mel filterbank \(E\) over the linear frequency axis.
+            <strong>Bottom:</strong> linear spectrum and compressed mel energy shown in separate coordinate panels.
+        </figcaption>
+    </figure>
+
+    <p>
+        Mel projection is a rank-deficient linear map: \(E^{+}E \neq I\), so detail in the orthogonal
+        complement of \(E\)&rsquo;s range space is discarded and cannot be read back from \(S\) alone.
+    </p>
+
+    <h3><span class="num">2.</span> The naive round-trip still fails</h3>
+    <p>
+        Before neural vocoders, the classical decode was explicit: invert log, pseudo-invert the mel bank,
+        estimate phase with Griffin&ndash;Lim<a class="cite" href="#ref-2">2</a>, then iSTFT. Even at zero mel
+        error (\(\|S - \Phi(x)\| = 0\)), the output is metallic: mel was never a container for the full signal.
+    </p>
+
+    <div class="math-block">
+        \[
+            \hat{x}
+            = \mathrm{iSTFT}\!\Bigl(
+                \mathrm{GL}\bigl(E^{+}\,10^{S/10}\bigr)
+            \Bigr),
+            \qquad
+            \hat{x} \neq x
+        \]
+    </div>
+
+    <figure class="fig fig-wide">
+        <img src="../blog_figures/outputs/fig_mel_roundtrip_ladder.svg"
+             alt="Classical and neural mel decode paths.">
+        <figcaption>
+            <strong>Top row:</strong> classical chain \(S \to E^{+} \to |\widehat{X}| \to \mathrm{GL} \to \mathrm{iSTFT}\)
+            (violet terminus = noisy \(\hat{x}\)).
+            <strong>Bottom row:</strong> neural vocoder \(\hat{x} = G_\theta(S)\) learns a prior over missing detail.
+        </figcaption>
+    </figure>
+
+    <div class="audio-grid">
+        <div class="audio-item">
+            <label>Original \(x\)</label>
+            <audio controls preload="metadata" src="../blog_figures/outputs/audio/01_original.wav"></audio>
+        </div>
+        <div class="audio-item dim">
+            <label>Classical round-trip \(\hat{x} = \mathrm{iSTFT}(\mathrm{GL}(E^{+}10^{S/10}))\)</label>
+            <audio controls preload="metadata" src="../blog_figures/outputs/audio/03_griffin_lim_roundtrip.wav"></audio>
+        </div>
+    </div>
+
+    <h3><span class="num">3.</span> Why vocoders exist in the literature</h3>
+    <p>
+        Tacotron&nbsp;2<a class="cite" href="#ref-3">3</a> split the problem: an acoustic model predicts mel;
+        a WaveNet vocoder maps mel to waveform. The vocoder exists because mel\(\to\)wave is
+        <strong>one-to-many</strong><a class="cite" href="#ref-4">4</a>: one tile \(S\) labels a family of
+        signals differing in phase and null-space detail. MelGAN<a class="cite" href="#ref-5">5</a> and
+        HiFi-GAN<a class="cite" href="#ref-6">6</a> replaced Griffin&ndash;Lim with fast learned decoders.
+        PhaseAug<a class="cite" href="#ref-4">4</a> rotates phase during training so GAN vocoders stop
+        memorizing a single ground-truth waveform per mel. Diffusion vocoders sample from the same
+        equivalence class rather than chasing one canonical inverse.
+    </p>
+
+    <p>
+        Mel reconstruction loss is a poor proxy for perceptual match: equal mel RMSE can still yield
+        different resynthesized timbres<a class="cite" href="#ref-7">7</a>. Judge decoders by ear, not
+        pixel error alone.
+    </p>
+
+    <div class="math-block">
+        \[
+            \Phi(x_1) = \Phi(x_2) = S,\ \ x_1 \neq x_2
+            \qquad\Longrightarrow\qquad
+            \hat{x} = G_\theta(S) \approx x_1\ \text{(one choice from many preimages)}
+        \]
+    </div>
+
+    <figure class="fig fig-wide">
+        <img src="../blog_figures/outputs/fig_mel_many_to_one.svg"
+             alt="Many waveforms map to one mel; vocoders pick one decode.">
+        <figcaption>
+            Three distinct preimages \(x_1, x_2, x_3\) (blue) collapse to one mel \(S\) (violet center).
+            Dashed outbound paths: different vocoders \(G_{\theta_i}(S)\), a design choice, not a unique inverse.
+        </figcaption>
+    </figure>
+
+    <h3><span class="num">4.</span> Is perfect inversion worth solving?</h3>
+    <p>
+        Treat this as a product question. Perfect lossless round-trip (\(\hat{x} = x\)) fights the
+        representation: mel discards detail on purpose.
+    </p>
+    <ul class="summary">
+        <li><strong>Don&rsquo;t bother (forward mel only).</strong> ASR, speaker ID, embeddings, speech LLMs
+            that never synthesize. You need \(\Phi(x)\), never \(\Phi^{-1}\).</li>
+        <li><strong>Worth good-enough synthesis.</strong> TTS, voice conversion, dubbing, neural codecs.
+            Vocoder quality is the product. HiFi-GAN-era decoders ship; bit-exact recovery does not.</li>
+        <li><strong>Perfect round-trip: wrong goal.</strong> Mel was designed to discard non-perceptual detail;
+            bit-exact \(\hat{x} = x\) fights the representation.</li>
+        <li><strong>Skip mel when you can.</strong> End-to-end wave models bypass \(\Phi\) entirely if you
+            control the full stack.</li>
+    </ul>
+
+    <h3><span class="num">5.</span> Why we don&rsquo;t need the phase</h3>
+    <p>
+        The flip side of all this: discarding phase is not a reluctant compromise, it is the right call.
+        The STFT shift property shows why. Delay the signal by \(\tau\) and every bin picks up a pure phase
+        factor:
+    </p>
+
+    <div class="math-block">
+        \[
+            x(t-\tau)\ \xrightarrow{\ \mathrm{STFT}\ }\ X(f,t)\,e^{-j2\pi f\tau},
+            \qquad
+            \bigl|X\,e^{-j2\pi f\tau}\bigr| = |X|,
+            \qquad
+            \angle X \mapsto \angle X - 2\pi f\tau
+        \]
+    </div>
+
+    <p>
+        The magnitude (hence the mel) is left exactly unchanged, while the phase of every bin rotates by
+        \(-2\pi f\tau\). So a sub-sample shift no listener can hear rewrites the entire phase spectrum. Three
+        consequences make phase a poor thing to store:
+    </p>
+    <ul class="summary">
+        <li><strong>Not shift-invariant.</strong> Perceptually identical inputs produce wildly different phase
+            but identical magnitude. A feature should be stable to inaudible time shifts; phase is not.</li>
+        <li><strong>Perceptually weak.</strong> The ear is largely insensitive to absolute phase (Ohm&rsquo;s
+            acoustic law), so the \(F \times T\) phase values mostly encode clock alignment, not timbre.</li>
+        <li><strong>Redundant anyway.</strong> For an overlapping STFT a self-consistent phase is heavily
+            constrained by the magnitudes of neighboring frames, exactly what Griffin&ndash;Lim
+            exploits<a class="cite" href="#ref-2">2</a>. Phase is both unstable and partly recoverable.</li>
+    </ul>
+    <p>
+        Storing phase means committing to one arbitrary alignment from a perceptually equivalent continuum.
+        Keeping \(|X|\) and letting a vocoder re-pick a self-consistent phase at decode time is the better
+        trade, which is precisely the job vocoders do.
+    </p>
+
+    <h3>Practical checklist</h3>
+    <ul class="summary">
+        <li><strong>Encoding:</strong> \(x \to S\) is well-defined. Match frontend params across train and deploy.</li>
+        <li><strong>Decoding:</strong> budget for \(G_\theta\) or accept classical artifacts. Mel L1 alone will not save you.</li>
+        <li><strong>Training:</strong> treat \(S \to x\) as one-to-many<a class="cite" href="#ref-4">4</a>;
+            phase augmentation and multi-resolution STFT losses help.</li>
+    </ul>
+
+    <div class="callout">
+        <strong>Golden nugget.</strong> You cannot round-trip audio through log-mel without loss: that is
+        why vocoders exist. For recognition, \(\Phi\) is the right compression. For synthesis, \(G_\theta\)
+        is the literature&rsquo;s admission that \(S\) never held the full signal. Invest in decoder quality
+        when audio is the product; ignore the round-trip problem when it is not.
+    </div>
+
+    <div class="references">
+        <h4>References</h4>
+        <ol>
+            <li id="ref-1">Natsiou &amp; O&rsquo;Leary, &ldquo;<a href="https://arxiv.org/abs/2201.02483" target="_blank" rel="noopener">A sinusoidal signal reconstruction method for the inversion of the mel-spectrogram</a>,&rdquo; 2022.</li>
+            <li id="ref-2">Griffin &amp; Lim, &ldquo;<a href="https://ieeexplore.ieee.org/document/1164317" target="_blank" rel="noopener">Signal estimation from modified short-time Fourier transform</a>,&rdquo; IEEE Transactions on Acoustics, Speech, and Signal Processing, 32(2):236&ndash;243, 1984.</li>
+            <li id="ref-3">Shen et al., &ldquo;<a href="https://arxiv.org/abs/1712.05884" target="_blank" rel="noopener">Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions</a> (Tacotron&nbsp;2),&rdquo; 2018.</li>
+            <li id="ref-4">Lee et al., &ldquo;<a href="https://arxiv.org/abs/2211.04610" target="_blank" rel="noopener">PhaseAug: A Differentiable Augmentation for Speech Synthesis to Simulate One-to-Many Mapping</a>,&rdquo; ICASSP 2023.</li>
+            <li id="ref-5">Kumar et al., &ldquo;<a href="https://proceedings.neurips.cc/paper/2019/file/6804c9bca0a615bdb9374d00a9fcba59-Paper.pdf" target="_blank" rel="noopener">MelGAN: Generative Adversarial Networks for Conditional Waveform Synthesis</a>,&rdquo; NeurIPS 2019.</li>
+            <li id="ref-6">Kong et al., &ldquo;<a href="https://arxiv.org/abs/2010.05646" target="_blank" rel="noopener">HiFi-GAN: Generative Adversarial Networks for Efficient and High Fidelity Speech Synthesis</a>,&rdquo; NeurIPS 2020.</li>
+            <li id="ref-7">Natsiou et al., &ldquo;<a href="https://arxiv.org/abs/2301.07665" target="_blank" rel="noopener">An investigation of the reconstruction capacity of stacked convolutional autoencoders for log-mel-spectrograms</a>,&rdquo; 2023.</li>
+            <li id="ref-8">Panayotov et al., &ldquo;<a href="https://www.openslr.org/12/" target="_blank" rel="noopener">LibriSpeech: an ASR corpus based on public domain audio books</a>,&rdquo; ICASSP 2015.</li>
+        </ol>
+    </div>
+</body>
+</html>
