@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recoverable Before Readable &mdash; an endpoint-coordinate lens on transformers</title>
+    <title>Recoverable Before Readable: an endpoint-coordinate lens on transformers</title>
     <link href="../css/style.css" rel="stylesheet">
     <link href="../css/post.css" rel="stylesheet">
     <style>
@@ -45,6 +45,20 @@
         a.cite::after  { content: "]"; }
         a.cite:hover { text-decoration: underline; }
         .references li:target { background: #fff7cc; }
+        .references a { color: #0f4dd0; text-decoration: none; }
+        .references a:hover { text-decoration: underline; }
+
+        /* ---- mobile: keep dense diagrams legible via horizontal scroll ---------- */
+        @media (max-width: 680px) {
+            #concept-fig, #flowmap-fig, .fig-wide {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            #concept, #flowmap { min-width: 600px; }
+            .fig-wide img { min-width: 560px; }
+            .plotly-embed { min-width: 600px; height: 460px; }
+            .fig figcaption { min-width: 0; }
+        }
 
         /* ---- intro concept diagram ---------------------------------------- */
         #concept-fig { margin: 2.2rem 0 2.6rem 0; }
@@ -95,7 +109,7 @@
     <h1>Recoverable Before Readable</h1>
     <p class="hero-sub">
         An endpoint-coordinate lens on transformers. A model decides before it speaks: read the
-        residual stream as a trajectory and you can watch a decision crystallize &mdash; layers
+        residual stream as a trajectory and you can watch a decision crystallize, layers
         before it ever reaches the output.
     </p>
     <p class="post-meta">June 2026 &middot; experiments on Qwen3.5-2B</p>
@@ -206,7 +220,7 @@
         </svg>
         <figcaption>
             Endpoint coordinates. The residual stream runs horizontally across layers. A single linear
-            <em>endpoint probe</em> at a middle layer&nbsp;&#8467;* sends a dashed arch to the final node&nbsp;L &mdash;
+            <em>endpoint probe</em> at a middle layer&nbsp;&#8467;* sends a dashed arch to the final node&nbsp;L,
             predicting the model&rsquo;s answer (blue star) several layers before that answer becomes readable from
             the output (violet, at&nbsp;L).
         </figcaption>
@@ -214,12 +228,12 @@
 
     <h3>Across layers: MLP refines in place, attention reads the sentence</h3>
     <p>
-        Follow one token &mdash; the output position &mdash; as its residual is built across depth. Most steps
+        Follow one token (the output position) as its residual is built across depth. Most steps
         are <span class="highlight">MLP</span> updates that refine that token <em>in place</em>: they reshape
         it without getting much closer to the answer. The work of <em>moving</em> toward the answer is done by
         <span class="highlight">attention</span>, the one operation that reads from earlier tokens in the
         sentence. In the staircase below, MLP steps move flat (a layer deeper, no closer) while each attention
-        step pulls in context from the sentence above (the blue arrows) and steps the residual down &mdash;
+        step pulls in context from the sentence above (the blue arrows) and steps the residual down,
         closer to the answer.
     </p>
 
@@ -238,10 +252,10 @@
             <line x1="80" y1="112" x2="80" y2="278" stroke="#cbd5e1" stroke-width="1.2" marker-end="url(#faG)"/>
             <text x="50" y="195" text-anchor="middle" font-size="9.5" fill="#94a3b8" transform="rotate(-90 50 195)">closer to the answer &#8595;</text>
             <line x1="92" y1="300" x2="662" y2="300" stroke="#cbd5e1" stroke-width="1.2" marker-end="url(#faG)"/>
-            <text x="378" y="316" text-anchor="middle" font-size="9.5" fill="#94a3b8">depth &#8212; layers across the network &#8594;</text>
+            <text x="378" y="316" text-anchor="middle" font-size="9.5" fill="#94a3b8">depth: layers across the network &#8594;</text>
 
             <!-- the sentence so far (earlier tokens), along the top -->
-            <text class="tok" x="405" y="20" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#475569" style="animation-delay:.15s">the sentence so far &#8212; attention reads from here</text>
+            <text class="tok" x="405" y="20" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#475569" style="animation-delay:.15s">the sentence so far: attention reads from here</text>
             <g fill="#1e3a8a" font-size="10" text-anchor="middle">
                 <g class="tok" style="animation-delay:.20s"><rect x="135" y="30" width="80" height="22" rx="6" fill="#ede9fe" stroke="#c4b5fd" stroke-width="1"/><text x="175" y="45">The</text></g>
                 <g class="tok" style="animation-delay:.30s"><rect x="250" y="30" width="80" height="22" rx="6" fill="#ede9fe" stroke="#c4b5fd" stroke-width="1"/><text x="290" y="45">capital</text></g>
@@ -294,27 +308,27 @@
             <!-- legend -->
             <g class="flab" style="animation-delay:2.9s" font-size="10.5">
                 <line x1="20" y1="332" x2="46" y2="332" stroke="#2563eb" stroke-width="2.8" stroke-linecap="round"/>
-                <text x="53" y="335.5" fill="#1e3a8a"><tspan font-weight="bold">Attention</tspan> &#8212; reads earlier tokens, steps closer to the answer</text>
+                <text x="53" y="335.5" fill="#1e3a8a"><tspan font-weight="bold">Attention</tspan>: reads earlier tokens, steps closer to the answer</text>
                 <line x1="20" y1="352" x2="46" y2="352" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round"/>
-                <text x="53" y="355.5" fill="#5b21b6"><tspan font-weight="bold">MLP</tspan> &#8212; refines in place: a layer deeper, no closer</text>
+                <text x="53" y="355.5" fill="#5b21b6"><tspan font-weight="bold">MLP</tspan>: refines in place, a layer deeper, no closer</text>
             </g>
         </svg>
         <figcaption>
             How one token&rsquo;s residual reaches the answer (schematic). Reading left&rarr;right is depth;
-            reading top&rarr;bottom is distance to the answer. MLP sublayers (violet) move it <em>flat</em> &mdash;
+            reading top&rarr;bottom is distance to the answer. MLP sublayers (violet) move it <em>flat</em>,
             a layer deeper without getting closer. Attention sublayers (blue) are the only steps that read the
-            earlier tokens of the sentence (top), and they step the residual <em>down</em> &mdash; closing the
+            earlier tokens of the sentence (top), and they step the residual <em>down</em>, closing the
             distance until it lands on the answer.
         </figcaption>
     </figure>
 
     <p>
         That is the cartoon. Here is the real thing: ask Qwen3.5-2B the <em>same</em> kind of question many
-        ways &mdash; the capital of France, of Japan, of Egypt, of Brazil, eight countries in all &mdash; and
+        ways (the capital of France, of Japan, of Egypt, of Brazil; eight countries in all) and
         capture its last-token residual at every one of its 24 layers, then project the whole stack into 3D.
         Color runs from the embedding (cyan) to the final layer (violet). Whether you reduce it linearly (PCA)
         or nonlinearly (UMAP), the same picture holds: because the questions share a routine, their
-        trajectories run nearly on top of one another &mdash; the model is executing one
+        trajectories run nearly on top of one another: the model is executing one
         &ldquo;look&nbsp;up&nbsp;the&nbsp;capital&rdquo; computation regardless of which country you ask about.
     </p>
 
@@ -324,11 +338,11 @@
                 loading="lazy"></iframe>
         <figcaption>
             Real Qwen3.5-2B residual-stream trajectories for eight country&rarr;capital prompts, one path per
-            prompt, colored by layer depth (cyan &rarr; violet) &mdash; <em>drag to rotate, scroll to zoom,
-            click a prompt to isolate it</em>. The paths nearly coincide: same relation, same routine.
+            prompt, colored by layer depth (cyan &rarr; violet). <em>Drag to rotate, scroll to zoom,
+            click a prompt to isolate it.</em> The paths nearly coincide: same relation, same routine.
             <strong>Left:</strong> PCA on the unit-normalized states (linear). <strong>Right:</strong> UMAP
             (nonlinear). Violet diamonds mark the final-layer endpoint each trajectory lands on. The UMAP
-            layout is illustrative, not metric &mdash; nonlinear embeddings can exaggerate structure, so the
+            layout is illustrative, not metric: nonlinear embeddings can exaggerate structure, so the
             quantitative claims below rest on the linear readouts, not on these geometries.
         </figcaption>
     </figure>
@@ -339,15 +353,15 @@
         refuse-vs-comply. A linear monitor reads that decision straight off the residual stream at
         <span class="highlight">layer 9</span>. The exact same decision only becomes visible through the
         output (the logit lens<a class="cite" href="#ref-1">1</a>) at <span class="highlight">layer 16</span>. The model commits, then
-        spends seven layers &mdash; nearly a third of its depth &mdash; getting around to saying it.
+        spends seven layers (nearly a third of its depth) getting around to saying it.
     </p>
 
     <figure class="fig fig-wide">
         <img src="../blog_figures/outputs/fig3_recoverable_before_readable.svg"
              alt="Recoverable-before-readable: refusal decodable at layer 9, readable at layer 16.">
         <figcaption>
-            Refuse-vs-comply AUC by layer. <strong>Recoverable</strong> (blue) &mdash; a linear read of the
-            residual stream &mdash; crosses 0.9 at layer 9; <strong>readable</strong> (violet), the same
+            Refuse-vs-comply AUC by layer. <strong>Recoverable</strong> (blue), a linear read of the
+            residual stream, crosses 0.9 at layer 9; <strong>readable</strong> (violet), the same
             decision via the logit lens, only catches up at layer 16. The shaded band is the gap between
             deciding and showing.
         </figcaption>
@@ -357,11 +371,11 @@
     <p>
         Train the endpoint reader on clean text only, then score how far a live activation is from where
         the model &ldquo;should&rdquo; have ended up. That reconstruction residual flags <em>successful</em>
-        jailbreaks<a class="cite" href="#ref-6">6</a> from <span class="highlight">layer 0</span> at ~0.93 AUC &mdash; with no labelled
+        jailbreaks<a class="cite" href="#ref-6">6</a> from <span class="highlight">layer 0</span> at ~0.93 AUC, with no labelled
         jailbreak examples. The standard distance baseline (Mahalanobis to the clean manifold) sits at
         chance until the final third of the network and reaches the same bar
         <span class="highlight">~14 layers later</span>. Peak accuracy ends up comparable; the advantage is
-        <em>timing</em> &mdash; early enough to abort generation before the harmful span is produced.
+        <em>timing</em>: early enough to abort generation before the harmful span is produced.
     </p>
 
     <figure class="fig fig-wide">
@@ -370,7 +384,7 @@
         <figcaption>
             Family-stratified jailbreak-success AUC. The endpoint residual (blue) is informative from the
             first layer; Mahalanobis (violet) only reaches AUC 0.85 by layer 14. Same ceiling, far earlier
-            warning &mdash; on 600 prompts with no labelled positives.
+            warning, on 600 prompts with no labelled positives.
         </figcaption>
     </figure>
 
@@ -379,7 +393,7 @@
         A probe that looks like it reads &ldquo;early factual recall&rdquo; can simply be riding a
         token-frequency shortcut. Measured against a content-blind control on the CounterFact benchmark<a class="cite" href="#ref-5">5</a>,
         <span class="highlight">40&ndash;70%</span> of the shallow signal is prior, not retrieval. Only a
-        twin-reciprocal balancing gate drives that to <span class="highlight">exactly zero</span> &mdash;
+        twin-reciprocal balancing gate drives that to <span class="highlight">exactly zero</span>,
         and a smaller, genuine signal survives underneath it. The most useful thing a probing pipeline can
         ship is not the probe; it&rsquo;s the gate that tells you when the probe started doing the task itself.
     </p>
@@ -389,22 +403,22 @@
              alt="Shortcut-control gates: only the twin-reciprocal gate removes the content-blind prior.">
         <figcaption>
             <strong>Left:</strong> share of the shallow signal explained by a content-blind prior across four
-            gates &mdash; only the twin-reciprocal gate (blue) is clean. <strong>Right:</strong> under that
+            gates; only the twin-reciprocal gate (blue) is clean. <strong>Right:</strong> under that
             clean gate, a genuine retrieval signal still rises with depth while the prior stays pinned at zero.
         </figcaption>
     </figure>
 
     <div class="callout">
-        <strong>The common thread.</strong> Read a transformer in <em>endpoint coordinates</em> &mdash; where
-        the computation is heading, not just where it is &mdash; and a decision becomes legible long before
+        <strong>The common thread.</strong> Read a transformer in <em>endpoint coordinates</em> (where
+        the computation is heading, not just where it is) and a decision becomes legible long before
         the model speaks it. That single move is what powers all three results: the refusal gap, the
         early jailbreak alarm, and the probe-honesty gate.
     </div>
 
-    <h3>What this is &mdash; and what it isn&rsquo;t</h3>
+    <h3>What this is, and what it isn&rsquo;t</h3>
     <p>
         This is a small, deliberately honest diagnostic toolkit, not a claim that transformers
-        &ldquo;are&rdquo; diffusion models &mdash; the flow framing is a coordinate choice. Results are on one
+        &ldquo;are&rdquo; diffusion models: the flow framing is a coordinate choice. Results are on one
         model and should be read as such. The depth dynamics echo concurrent work on block-recurrent vision
         transformers<a class="cite" href="#ref-3">3</a>; the depth readout is kin to the tuned lens<a class="cite" href="#ref-2">2</a>; the on-manifold-vs-off-manifold intuition
         is shared with recent manifold-steering work<a class="cite" href="#ref-4">4</a>. What I think holds up as genuinely useful is the
@@ -415,12 +429,12 @@
     <div class="references">
         <h4>Notes &amp; related work</h4>
         <ol>
-            <li id="ref-1">nostalgebraist, &ldquo;Interpreting GPT: the Logit Lens,&rdquo; 2020.</li>
-            <li id="ref-2">Belrose et al., &ldquo;Eliciting Latent Predictions with the Tuned Lens,&rdquo; 2023.</li>
-            <li id="ref-3">Jacobs, Fel, Hakim et al., &ldquo;Block-Recurrent Dynamics in Vision Transformers&rdquo; (RAPTOR), ICLR 2026.</li>
-            <li id="ref-4">Wurgaft, Rager et al., &ldquo;Manifold Steering Reveals the Shared Geometry of Representation and Behavior,&rdquo; 2026.</li>
-            <li id="ref-5">Meng et al., &ldquo;Locating and Editing Factual Associations in GPT&rdquo; (CounterFact), NeurIPS 2022.</li>
-            <li id="ref-6">Chao et al., &ldquo;JailbreakBench,&rdquo; 2024.</li>
+            <li id="ref-1">nostalgebraist, &ldquo;<a href="https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens" target="_blank" rel="noopener">Interpreting GPT: the Logit Lens</a>,&rdquo; 2020.</li>
+            <li id="ref-2">Belrose et al., &ldquo;<a href="https://arxiv.org/abs/2303.08112" target="_blank" rel="noopener">Eliciting Latent Predictions with the Tuned Lens</a>,&rdquo; 2023.</li>
+            <li id="ref-3">Jacobs, Fel, Hakim et al., &ldquo;<a href="https://arxiv.org/abs/2512.19941" target="_blank" rel="noopener">Block-Recurrent Dynamics in Vision Transformers</a>&rdquo; (RAPTOR), ICLR 2026.</li>
+            <li id="ref-4">Wurgaft, Rager et al., &ldquo;<a href="https://arxiv.org/abs/2605.05115" target="_blank" rel="noopener">Manifold Steering Reveals the Shared Geometry of Neural Network Representation and Behavior</a>,&rdquo; 2026.</li>
+            <li id="ref-5">Meng et al., &ldquo;<a href="https://arxiv.org/abs/2202.05262" target="_blank" rel="noopener">Locating and Editing Factual Associations in GPT</a>&rdquo; (CounterFact), NeurIPS 2022.</li>
+            <li id="ref-6">Chao et al., &ldquo;<a href="https://arxiv.org/abs/2404.01318" target="_blank" rel="noopener">JailbreakBench</a>,&rdquo; 2024.</li>
         </ol>
     </div>
 </body>

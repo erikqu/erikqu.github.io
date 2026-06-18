@@ -90,8 +90,14 @@ a:hover {
 @media (max-width: 1000px) {
     body {
         max-width: none;
-        margin-left: 10vh;
-        margin-right: 10vh;
-        padding: 0;
+        margin: 6vh auto;
+        padding: 0 24px;
+    }
+}
+
+@media (max-width: 600px) {
+    body {
+        margin: 4vh auto;
+        padding: 0 16px;
     }
 }
