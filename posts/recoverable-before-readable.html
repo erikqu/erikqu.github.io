@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recoverable Before Readable &mdash; an endpoint-coordinate lens on transformers</title>
+    <link href="../css/style.css" rel="stylesheet">
+    <link href="../css/post.css" rel="stylesheet">
+    <style>
+        .post-nav { font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .hero-sub {
+            font-size: 1.2rem; color: #444; font-style: italic;
+            line-height: 1.5; margin: -0.6rem 0 1.6rem 0;
+        }
+        .fig { margin: 2.6rem 0 2.2rem 0; }
+        .fig img {
+            width: 100%; height: auto; display: block;
+            background: transparent;
+        }
+        .fig figcaption {
+            font-size: 0.85rem; color: #666; font-style: italic;
+            margin-top: 0.7rem; text-align: center; line-height: 1.5;
+        }
+        .plotly-embed {
+            width: 100%; height: 560px; border: 0; display: block;
+            background: transparent;
+        }
+        /* let the big charts break out wider than the text column on desktop */
+        @media (min-width: 1100px) {
+            .fig-wide { width: 132%; margin-left: -16%; }
+        }
+        .kicker {
+            display: inline-block; font-size: 0.78rem; font-weight: 700;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            color: #0f4dd0; margin-bottom: 0.4rem;
+        }
+        h3 .num { color: #0f4dd0; font-weight: 700; margin-right: 0.4rem; }
+        /* callout should sit on the page's beige, not a white card */
+        .callout { background: transparent; }
+
+        /* ---- intro concept diagram ---------------------------------------- */
+        #concept-fig { margin: 2.2rem 0 2.6rem 0; }
+        #concept { width: 100%; height: auto; display: block; overflow: visible; }
+        #concept text { font-family: inherit; }
+        @keyframes cDraw  { to { stroke-dashoffset: 0; } }
+        @keyframes cFade  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes cRise  { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes cPop   { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+        @keyframes cMarch { to { stroke-dashoffset: -22; } }
+        #concept .traj      { stroke-dasharray: 1; stroke-dashoffset: 1; animation: cDraw 1.6s ease-out .25s forwards; }
+        #concept .flow      { animation: cMarch 1.3s linear infinite; }
+        #concept .reader    { opacity: 0; animation: cFade .6s ease 1s forwards; }
+        #concept .arc       { opacity: 0; animation: cFade .6s ease 1.25s forwards, cMarch 1s linear 1.25s infinite; }
+        #concept .predlabel { opacity: 0; animation: cRise .6s ease 1.5s forwards; }
+        #concept .endpoint  { transform-box: fill-box; transform-origin: center; opacity: 0;
+                              animation: cPop .55s cubic-bezier(.2,1.3,.4,1) 1.85s forwards; }
+        #concept .outchip   { opacity: 0; animation: cRise .6s ease 2.1s forwards; }
+        #concept .anno      { opacity: 0; animation: cRise .6s ease 2.35s forwards; }
+        #concept .anno2     { opacity: 0; animation: cRise .6s ease 2.55s forwards; }
+        @media (prefers-reduced-motion: reduce) {
+            #concept .traj { animation: none; stroke-dashoffset: 0; }
+            #concept .flow { animation: none; }
+            #concept .reader, #concept .arc, #concept .predlabel, #concept .endpoint,
+            #concept .outchip, #concept .anno, #concept .anno2 { animation: none; opacity: 1; transform: none; }
+        }
+
+        /* ---- latent-space attention/MLP map (reuses cFade/cRise/cPop above) ---- */
+        #flowmap { width: 100%; height: auto; display: block; overflow: visible; }
+        #flowmap text { font-family: inherit; }
+        #flowmap .ring  { opacity: 0; animation: cFade .6s ease .15s both; }
+        #flowmap .seg   { opacity: 0; animation: cFade .5s ease both; }
+        #flowmap .endpt { transform-box: fill-box; transform-origin: center; opacity: 0;
+                          animation: cPop .55s cubic-bezier(.2,1.3,.4,1) 2.8s forwards; }
+        #flowmap .flab  { opacity: 0; animation: cRise .6s ease both; }
+        @media (prefers-reduced-motion: reduce) {
+            #flowmap .ring, #flowmap .seg, #flowmap .endpt, #flowmap .flab { animation: none; opacity: 1; transform: none; }
+        }
+    </style>
+</head>
+<body>
+    <p class="post-nav"><a href="../index.html">&larr; Erik Quintanilla</a></p>
+
+    <h1>Recoverable Before Readable</h1>
+    <p class="hero-sub">
+        An endpoint-coordinate lens on transformers. A model decides before it speaks: read the
+        residual stream as a trajectory and you can watch a decision crystallize &mdash; layers
+        before it ever reaches the output.
+    </p>
+    <p class="post-meta">June 2026 &middot; experiments on Qwen3.5-2B</p>
+
+    <p class="lede">
+        A language model builds its answer gradually, layer by layer. If you stop treating each
+        layer as a static snapshot and instead read the residual stream as a <em>flow toward where it
+        is heading</em>, one lens buys you three things: an early-warning jailbreak detector, an
+        honesty test for interpretability probes, and a clean picture of when a model
+        <span class="highlight">makes up its mind</span>. Everything below is on a single open model,
+        Qwen3.5-2B.
+    </p>
+
+    <figure id="concept-fig" class="fig">
+        <svg id="concept" viewBox="0 0 780 350" role="img" aria-labelledby="concept-t concept-d" xmlns="http://www.w3.org/2000/svg">
+            <title id="concept-t">Reading the residual stream as a trajectory</title>
+            <desc id="concept-d">A small transformer's residual stream is drawn as a trajectory rising across layers. A linear endpoint reader taps a middle layer and predicts the final landing point, which coincides with the model's output several layers before that output becomes readable.</desc>
+            <defs>
+                <marker id="ahB" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#2563eb"/></marker>
+                <marker id="ahV" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#7c3aed"/></marker>
+                <marker id="ahS" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8"/></marker>
+            </defs>
+
+            <!-- residual stream baseline + animated token flow -->
+            <line x1="120" y1="240" x2="660" y2="240" stroke="#cbd5e1" stroke-width="1.6"/>
+            <line class="flow" x1="120" y1="240" x2="660" y2="240" stroke="#93b4f5" stroke-width="2" stroke-dasharray="2 9" stroke-linecap="round"/>
+
+            <!-- layer nodes + labels -->
+            <g text-anchor="middle">
+                <circle cx="120" cy="240" r="3.4" fill="#94a3b8"/>
+                <circle cx="230" cy="240" r="3.4" fill="#94a3b8"/>
+                <circle cx="340" cy="240" r="4.2" fill="#2563eb"/>
+                <circle cx="450" cy="240" r="3.4" fill="#94a3b8"/>
+                <circle cx="560" cy="240" r="3.4" fill="#94a3b8"/>
+                <circle cx="660" cy="240" r="4.2" fill="#7c3aed"/>
+                <g font-size="10" fill="#64748b">
+                    <text x="120" y="258">0</text>
+                    <text x="230" y="258">1</text>
+                    <text x="340" y="258">&#8467;*</text>
+                    <text x="450" y="258">&#8230;</text>
+                    <text x="560" y="258">&#8230;</text>
+                    <text x="660" y="258">L</text>
+                </g>
+                <text x="98" y="258" text-anchor="end" font-size="10" font-style="italic" fill="#94a3b8">layer</text>
+            </g>
+
+            <!-- prompt chip -->
+            <g>
+                <rect x="16" y="223" width="86" height="34" rx="8" fill="#f1f5fb" stroke="#cbd5e1"/>
+                <text x="59" y="244.5" text-anchor="middle" font-size="11" fill="#475569">prompt</text>
+                <line x1="104" y1="240" x2="115" y2="240" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ahS)"/>
+            </g>
+
+            <!-- per-layer residual update glyph at layer 1 -->
+            <g>
+                <circle cx="230" cy="240" r="7.5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.3"/>
+                <text x="230" y="243.6" text-anchor="middle" font-size="11" fill="#64748b">+</text>
+                <rect x="184" y="284" width="42" height="22" rx="4" fill="#eef2f7" stroke="#cbd5e1"/>
+                <text x="205" y="299" text-anchor="middle" font-size="9.5" fill="#475569">Attn</text>
+                <rect x="234" y="284" width="42" height="22" rx="4" fill="#eef2f7" stroke="#cbd5e1"/>
+                <text x="255" y="299" text-anchor="middle" font-size="9.5" fill="#475569">MLP</text>
+                <line x1="205" y1="284" x2="223" y2="251" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#ahS)"/>
+                <line x1="255" y1="284" x2="237" y2="251" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#ahS)"/>
+                <text x="230" y="322" text-anchor="middle" font-size="9.5" font-style="italic" fill="#64748b">h&#8343;&#8330;&#8321; = h&#8343;&#8202;+&#8202;f(h&#8343;)</text>
+            </g>
+
+            <!-- residual-stream trajectory (the moving hidden state) -->
+            <path class="traj" pathLength="1" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round"
+                  d="M120,240 C165,232 205,214 230,206 C270,196 305,184 340,176 C395,162 420,150 450,144 C530,132 600,124 660,120"/>
+            <circle cx="120" cy="240" r="3.6" fill="#2563eb"/>
+
+            <!-- endpoint reader tapping layer l* -->
+            <g class="reader">
+                <line x1="340" y1="176" x2="340" y2="190" stroke="#2563eb" stroke-width="1.4"/>
+                <circle cx="340" cy="176" r="4" fill="#2563eb" stroke="#FCFCF5" stroke-width="1"/>
+                <rect x="301" y="190" width="78" height="24" rx="6" fill="#eaf1ff" stroke="#2563eb" stroke-width="1.3"/>
+                <text x="340" y="206" text-anchor="middle" font-size="9.5" fill="#1e3a8a">linear read&#8202; W</text>
+            </g>
+
+            <!-- predicted-endpoint arc + label -->
+            <path class="arc" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="6 6"
+                  d="M340,172 C450,96 575,92 648,112" marker-end="url(#ahB)"/>
+            <text class="predlabel" x="486" y="82" text-anchor="middle" font-size="10.5" fill="#1e3a8a">predicted endpoint&#8202; &#293;<tspan dy="3" font-size="8">L</tspan><tspan dy="-3" font-size="10.5">(&#8467;*)</tspan></text>
+
+            <!-- output read at layer L (readable) -->
+            <g class="outchip">
+                <line x1="660" y1="92" x2="660" y2="50" stroke="#7c3aed" stroke-width="1.6" marker-end="url(#ahV)"/>
+                <rect x="600" y="18" width="120" height="30" rx="8" fill="#f4eefb" stroke="#7c3aed" stroke-width="1.2"/>
+                <text x="660" y="37.5" text-anchor="middle" font-size="11" fill="#5b21b6">&#8594; answer token</text>
+            </g>
+
+            <!-- endpoint target: predicted (blue star) coincides with actual output (violet ring) -->
+            <g class="endpoint">
+                <circle cx="660" cy="120" r="26" fill="#dbeafe" opacity="0.6"/>
+                <circle cx="660" cy="120" r="14" fill="none" stroke="#7c3aed" stroke-width="3"/>
+                <path d="M660,111 L662.2,116.9 L668.6,117.3 L663.6,121.2 L665.3,127.3 L660,123.8 L654.7,127.3 L656.4,121.2 L651.4,117.3 L657.8,116.9 Z" fill="#2563eb"/>
+            </g>
+
+            <!-- gap bracket + annotations -->
+            <g class="anno">
+                <line x1="340" y1="262" x2="340" y2="298" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2 3"/>
+                <line x1="660" y1="262" x2="660" y2="298" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2 3"/>
+                <path d="M340,308 V300 H660 V308" fill="none" stroke="#94a3b8" stroke-width="1.3"/>
+                <text x="500" y="294" text-anchor="middle" font-size="9" fill="#64748b">commit &#8594; readable</text>
+            </g>
+            <g class="anno2" text-anchor="middle">
+                <text x="340" y="322" font-size="9.5" font-weight="bold" fill="#1e3a8a">decided</text>
+                <text x="340" y="334" font-size="9" fill="#2563eb">(recoverable)</text>
+                <text x="660" y="322" font-size="9.5" font-weight="bold" fill="#5b21b6">shown</text>
+                <text x="660" y="334" font-size="9" fill="#7c3aed">(readable)</text>
+            </g>
+        </svg>
+        <figcaption>
+            Endpoint coordinates. A transformer&rsquo;s residual stream is a trajectory across layers; a single
+            linear read at a middle layer&nbsp;&#8467;* already predicts where the computation lands (blue star) &mdash;
+            and it coincides with the model&rsquo;s eventual output (violet ring), several layers before that answer is
+            readable from the output.
+        </figcaption>
+    </figure>
+
+    <h3>Across layers: MLPs drift, attention snaps</h3>
+    <p>
+        Stack the layers and a rhythm appears. Most steps are <span class="highlight">MLP</span> updates that
+        wander the residual sideways &mdash; reshaping it without getting much closer to the answer. The
+        <span class="highlight">attention</span> steps are the ones that snap it inward, toward where the
+        computation lands.
+    </p>
+
+    <figure id="flowmap-fig" class="fig">
+        <svg id="flowmap" viewBox="0 0 760 335" role="img" aria-labelledby="flow-t flow-d" xmlns="http://www.w3.org/2000/svg">
+            <title id="flow-t">Across layers: MLPs drift, attention snaps toward the endpoint</title>
+            <desc id="flow-d">The residual stream's path across the depth of the network. Contours mark fixed distances to the endpoint (the answer basin at right). Most steps are MLP updates that drift along a contour, reshaping the representation; the attention steps snap inward across contours, closing the distance to the answer.</desc>
+            <defs>
+                <marker id="faB" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#2563eb"/></marker>
+                <marker id="faV" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#7c3aed"/></marker>
+            </defs>
+
+            <!-- distance-to-endpoint contours + answer basin (right) -->
+            <circle class="ring" cx="665" cy="150" r="90" fill="#dbeafe" opacity="0.45"/>
+            <path class="ring" d="M486,60 Q444,150 486,240" fill="none" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="4 4"/>
+            <path class="ring" d="M389,60 Q361,150 389,240" fill="none" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="4 4"/>
+            <path class="ring" d="M296,60 Q274,150 296,240" fill="none" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="4 4"/>
+            <text class="flab" x="300" y="262" text-anchor="middle" font-size="9" font-style="italic" fill="#94a3b8" style="animation-delay:2.6s">contours = equal distance to the endpoint</text>
+
+            <!-- trajectory across depth: many MLP drifts (violet) punctuated by attention snaps (blue) -->
+            <g class="seg" style="animation-delay:.50s"><path d="M90,150 Q95,131 120,112" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" marker-end="url(#faV)"/><circle cx="120" cy="112" r="2.6" fill="#475569"/></g>
+            <g class="seg" style="animation-delay:.70s"><path d="M120,112 Q123,154 150,196" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" marker-end="url(#faV)"/><circle cx="150" cy="196" r="2.6" fill="#475569"/></g>
+            <g class="seg" style="animation-delay:.90s"><path d="M150,196 Q155,157 180,118" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" marker-end="url(#faV)"/><circle cx="180" cy="118" r="2.6" fill="#475569"/></g>
+            <g class="seg" style="animation-delay:1.10s"><line x1="180" y1="118" x2="300" y2="150" stroke="#2563eb" stroke-width="2.8" stroke-linecap="round" marker-end="url(#faB)"/><circle cx="300" cy="150" r="2.6" fill="#475569"/></g>
+            <g class="seg" style="animation-delay:1.30s"><path d="M300,150 Q305,128 330,106" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" marker-end="url(#faV)"/><circle cx="330" cy="106" r="2.6" fill="#475569"/></g>
+            <g class="seg" style="animation-delay:1.50s"><path d="M330,106 Q333,149 360,192" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" marker-end="url(#faV)"/><circle cx="360" cy="192" r="2.6" fill="#475569"/></g>
+            <g class="seg" style="animation-delay:1.70s"><path d="M360,192 Q365,156 390,120" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" marker-end="url(#faV)"/><circle cx="390" cy="120" r="2.6" fill="#475569"/></g>
+            <g class="seg" style="animation-delay:1.90s"><line x1="390" y1="120" x2="500" y2="150" stroke="#2563eb" stroke-width="2.8" stroke-linecap="round" marker-end="url(#faB)"/><circle cx="500" cy="150" r="2.6" fill="#475569"/></g>
+            <g class="seg" style="animation-delay:2.10s"><path d="M500,150 Q503,132 525,114" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" marker-end="url(#faV)"/><circle cx="525" cy="114" r="2.6" fill="#475569"/></g>
+            <g class="seg" style="animation-delay:2.30s"><path d="M525,114 Q530,151 555,188" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" marker-end="url(#faV)"/><circle cx="555" cy="188" r="2.6" fill="#475569"/></g>
+            <g class="seg" style="animation-delay:2.50s"><line x1="555" y1="188" x2="635" y2="150" stroke="#2563eb" stroke-width="2.8" stroke-linecap="round" marker-end="url(#faB)"/></g>
+
+            <!-- start point -->
+            <g class="flab" style="animation-delay:.4s">
+                <circle cx="90" cy="150" r="3.6" fill="#1e3a8a"/>
+                <text x="90" y="172" text-anchor="middle" font-size="10" fill="#475569">early layer</text>
+            </g>
+
+            <!-- cluster labels: many MLP layers, periodic attention snaps -->
+            <g class="flab" style="animation-delay:2.55s">
+                <text x="150" y="84" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#5b21b6">MLP layers drift</text>
+                <text x="360" y="84" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#5b21b6">MLP layers drift</text>
+                <text x="246" y="123" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#1e3a8a">attention</text>
+                <text x="451" y="123" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#1e3a8a">attention</text>
+            </g>
+
+            <!-- endpoint basin marker -->
+            <g class="endpt">
+                <circle cx="665" cy="150" r="14" fill="none" stroke="#7c3aed" stroke-width="3"/>
+                <path d="M665,141 L667.2,146.9 L673.6,147.3 L668.6,151.2 L670.3,157.3 L665,153.8 L659.7,157.3 L661.4,151.2 L656.4,147.3 L662.8,146.9 Z" fill="#2563eb"/>
+            </g>
+            <text class="flab" x="665" y="50" text-anchor="middle" font-size="10.5" fill="#1e3a8a" style="animation-delay:2.7s">endpoint&#8202; h<tspan baseline-shift="sub" font-size="8">L</tspan></text>
+
+            <!-- legend -->
+            <g class="flab" style="animation-delay:2.8s" font-size="10.5">
+                <line x1="40" y1="300" x2="66" y2="300" stroke="#2563eb" stroke-width="2.8" stroke-linecap="round"/>
+                <text x="73" y="303.5" fill="#1e3a8a"><tspan font-weight="bold">Attention</tspan> &#8212; snaps toward the endpoint (distance &#8595;)</text>
+                <line x1="40" y1="320" x2="66" y2="320" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round"/>
+                <text x="73" y="323.5" fill="#5b21b6"><tspan font-weight="bold">MLP</tspan> &#8212; drifts along a contour (reshapes)</text>
+            </g>
+        </svg>
+        <figcaption>
+            The residual stream&rsquo;s path across the depth of the network (schematic). Each contour is a fixed
+            distance to the endpoint. The many MLP steps (violet) drift along a contour &mdash; reshaping the
+            representation &mdash; while the attention steps (blue) snap inward across contours, closing the
+            distance to the answer.
+        </figcaption>
+    </figure>
+
+    <p>
+        That is the cartoon. Here is the real thing: capture Qwen3.5-2B&rsquo;s last-token residual at every one
+        of its 24 layers for a handful of factual prompts, then project the whole stack into 3D. Color runs from
+        the embedding (cyan) to the final layer (violet). Whether you reduce it linearly (PCA) or nonlinearly
+        (UMAP), the same picture holds &mdash; each prompt traces a smooth, depth-ordered arc that fans out as
+        the computation commits to an answer.
+    </p>
+
+    <figure class="fig fig-wide">
+        <iframe class="plotly-embed" src="../blog_figures/outputs/fig4_qwen_trajectory_3d.html"
+                title="Interactive 3D Qwen3.5-2B residual-stream trajectories (PCA and UMAP), colored by layer depth"
+                loading="lazy"></iframe>
+        <figcaption>
+            Real Qwen3.5-2B residual-stream trajectories, one path per prompt, colored by layer depth (cyan
+            &rarr; violet) &mdash; <em>drag to rotate, scroll to zoom, click a prompt to isolate it</em>.
+            <strong>Left:</strong> PCA on the unit-normalized states (linear). <strong>Right:</strong> UMAP
+            (nonlinear). Violet diamonds mark the final-layer endpoint each trajectory lands on. The UMAP
+            layout is illustrative, not metric &mdash; nonlinear embeddings can exaggerate structure, so the
+            quantitative claims below rest on the linear readouts, not on these geometries.
+        </figcaption>
+    </figure>
+
+    <h3><span class="num">1.</span> The model decides to refuse before it shows it</h3>
+    <p>
+        Give the model 200 harmful-and-benign prompts and let its own behavior label each one
+        refuse-vs-comply. A linear monitor reads that decision straight off the residual stream at
+        <span class="highlight">layer 9</span>. The exact same decision only becomes visible through the
+        output (the logit lens) at <span class="highlight">layer 16</span>. The model commits, then
+        spends seven layers &mdash; nearly a third of its depth &mdash; getting around to saying it.
+    </p>
+
+    <figure class="fig fig-wide">
+        <img src="../blog_figures/outputs/fig3_recoverable_before_readable.svg"
+             alt="Recoverable-before-readable: refusal decodable at layer 9, readable at layer 16.">
+        <figcaption>
+            Refuse-vs-comply AUC by layer. <strong>Recoverable</strong> (blue) &mdash; a linear read of the
+            residual stream &mdash; crosses 0.9 at layer 9; <strong>readable</strong> (violet), the same
+            decision via the logit lens, only catches up at layer 16. The shaded band is the gap between
+            deciding and showing.
+        </figcaption>
+    </figure>
+
+    <h3><span class="num">2.</span> Catch a jailbreak before it lands</h3>
+    <p>
+        Train the endpoint reader on clean text only, then score how far a live activation is from where
+        the model &ldquo;should&rdquo; have ended up. That reconstruction residual flags <em>successful</em>
+        jailbreaks from <span class="highlight">layer 0</span> at ~0.93 AUC &mdash; with no labelled
+        jailbreak examples. The standard distance baseline (Mahalanobis to the clean manifold) sits at
+        chance until the final third of the network and reaches the same bar
+        <span class="highlight">~14 layers later</span>. Peak accuracy ends up comparable; the advantage is
+        <em>timing</em> &mdash; early enough to abort generation before the harmful span is produced.
+    </p>
+
+    <figure class="fig fig-wide">
+        <img src="../blog_figures/outputs/fig1_jailbreak_detector.svg"
+             alt="Unsupervised jailbreak-success detector fires ~14 layers earlier than Mahalanobis.">
+        <figcaption>
+            Family-stratified jailbreak-success AUC. The endpoint residual (blue) is informative from the
+            first layer; Mahalanobis (violet) only reaches AUC 0.85 by layer 14. Same ceiling, far earlier
+            warning &mdash; on 600 prompts with no labelled positives.
+        </figcaption>
+    </figure>
+
+    <h3><span class="num">3.</span> Your interpretability probe is probably cheating</h3>
+    <p>
+        A probe that looks like it reads &ldquo;early factual recall&rdquo; can simply be riding a
+        token-frequency shortcut. Measured against a content-blind control on the CounterFact benchmark,
+        <span class="highlight">40&ndash;70%</span> of the shallow signal is prior, not retrieval. Only a
+        twin-reciprocal balancing gate drives that to <span class="highlight">exactly zero</span> &mdash;
+        and a smaller, genuine signal survives underneath it. The most useful thing a probing pipeline can
+        ship is not the probe; it&rsquo;s the gate that tells you when the probe started doing the task itself.
+    </p>
+
+    <figure class="fig fig-wide">
+        <img src="../blog_figures/outputs/fig2_probes_that_cheat_qwen35-2b.svg"
+             alt="Shortcut-control gates: only the twin-reciprocal gate removes the content-blind prior.">
+        <figcaption>
+            <strong>Left:</strong> share of the shallow signal explained by a content-blind prior across four
+            gates &mdash; only the twin-reciprocal gate (blue) is clean. <strong>Right:</strong> under that
+            clean gate, a genuine retrieval signal still rises with depth while the prior stays pinned at zero.
+        </figcaption>
+    </figure>
+
+    <div class="callout">
+        <strong>The common thread.</strong> Read a transformer in <em>endpoint coordinates</em> &mdash; where
+        the computation is heading, not just where it is &mdash; and a decision becomes legible long before
+        the model speaks it. That single move is what powers all three results: the refusal gap, the
+        early jailbreak alarm, and the probe-honesty gate.
+    </div>
+
+    <h3>What this is &mdash; and what it isn&rsquo;t</h3>
+    <p>
+        This is a small, deliberately honest diagnostic toolkit, not a claim that transformers
+        &ldquo;are&rdquo; diffusion models &mdash; the flow framing is a coordinate choice. Results are on one
+        model and should be read as such. The depth dynamics echo concurrent work on block-recurrent vision
+        transformers; the depth readout is kin to the tuned lens; the on-manifold-vs-off-manifold intuition
+        is shared with recent manifold-steering work. What I think holds up as genuinely useful is the
+        <em>discipline</em>: reading computation in flight, and shipping the controls that say when a readout
+        is fooling you.
+    </p>
+
+    <div class="references">
+        <h4>Notes &amp; related work</h4>
+        <ol>
+            <li>nostalgebraist, &ldquo;Interpreting GPT: the Logit Lens,&rdquo; 2020.</li>
+            <li>Belrose et al., &ldquo;Eliciting Latent Predictions with the Tuned Lens,&rdquo; 2023.</li>
+            <li>Jacobs, Fel, Hakim et al., &ldquo;Block-Recurrent Dynamics in Vision Transformers&rdquo; (RAPTOR), ICLR 2026.</li>
+            <li>Wurgaft, Rager et al., &ldquo;Manifold Steering Reveals the Shared Geometry of Representation and Behavior,&rdquo; 2026.</li>
+            <li>Meng et al., &ldquo;Locating and Editing Factual Associations in GPT&rdquo; (CounterFact), NeurIPS 2022.</li>
+            <li>Chao et al., &ldquo;JailbreakBench,&rdquo; 2024.</li>
+        </ol>
+    </div>
+</body>
+</html>
