@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RL Needs a World: when an LLM becomes the gym</title>
+    <link href="../css/style.css" rel="stylesheet">
+    <link href="../css/post.css" rel="stylesheet">
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']],
+                displayMath: [['\\[', '\\]']],
+            },
+            svg: { fontCache: 'global' },
+        };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    <style>
+        .post-nav { font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .hero-sub {
+            font-size: 1.2rem; color: #444; font-style: italic;
+            line-height: 1.5; margin: -0.6rem 0 1.6rem 0;
+        }
+        .fig { margin: 2.6rem 0 2.2rem 0; }
+        .fig > svg { width: 100%; height: auto; display: block; overflow: visible; }
+        .fig figcaption {
+            font-size: 0.85rem; color: #666; font-style: italic;
+            margin-top: 0.7rem; text-align: center; line-height: 1.5;
+        }
+        h2.section-heading {
+            margin-top: 2.5rem; margin-bottom: 1rem; font-size: 1.25rem;
+            letter-spacing: -0.01em; scroll-margin-top: 1.5rem;
+        }
+        h2.section-heading .num { color: #0f4dd0; font-weight: 700; margin-right: 0.4rem; }
+        .contents {
+            margin: 2rem 0 2.6rem 0; padding: 1rem 0;
+            border-top: 1px solid #1a1a1a; border-bottom: 1px solid #1a1a1a;
+        }
+        .contents-title {
+            margin: 0 0 0.55rem 0; font-size: 0.9rem; font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .contents ol {
+            margin: 0; padding-left: 1.35rem; columns: 2; column-gap: 2.4rem;
+            font-size: 0.9rem; line-height: 1.45;
+        }
+        .contents li { margin: 0.28rem 0; padding-left: 0.15rem; break-inside: avoid; }
+        .contents a { color: #1a1a1a; border-bottom-color: transparent; }
+        .contents a:hover { border-bottom-color: #1a1a1a; }
+        .math-block {
+            margin: 1.8rem 0; padding: 1.1rem 0;
+            overflow-x: auto; text-align: center;
+        }
+        .math-block mjx-container { margin: 0.35rem 0 !important; }
+        a.cite {
+            font-size: 0.62em; vertical-align: super; line-height: 0;
+            margin-left: 1px; color: #0f4dd0; text-decoration: none; font-weight: 600;
+        }
+        a.cite::before { content: "["; }
+        a.cite::after { content: "]"; }
+        a.cite:hover { text-decoration: underline; }
+        .references li:target { background: #fff7cc; }
+        .references-title { margin-bottom: 1rem; color: #333; font-size: 1rem; }
+        .references a { color: #0f4dd0; text-decoration: none; }
+        .references a:hover { text-decoration: underline; }
+        .prompt-box code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+        table.data td:nth-child(2), table.data th:nth-child(2),
+        table.data td:nth-child(3), table.data th:nth-child(3) { text-align: center; }
+        #sim-loop text { font-family: inherit; }
+        .domain-row {
+            display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 1.4rem 0 1.8rem 0;
+        }
+        .domain-row span {
+            border: 1px solid #1a1a1a; border-radius: 999px; padding: 0.2rem 0.65rem;
+            font-size: 0.8rem; color: #1a1a1a; background: transparent;
+        }
+        @media (max-width: 680px) {
+            .contents ol { columns: 1; }
+            .math-block { font-size: 0.92rem; }
+            table.data { font-size: 0.72rem; table-layout: fixed; }
+            table.data th, table.data td { padding: 0.35rem 0.25rem; overflow-wrap: anywhere; }
+            .prompt-box { font-size: 0.76rem; }
+        }
+    </style>
+</head>
+<body>
+    <p class="post-nav"><a href="../index.html">&larr; Home</a></p>
+
+    <h1>RL Needs a World</h1>
+    <p class="hero-sub">
+        A world model predicts consequences. For a language agent, another LLM can play that role:
+        one model acts, the other writes what happens next.
+    </p>
+    <p class="post-meta">Erik Quintanilla &middot; July 2026</p>
+
+    <p class="lede">
+        A terminal transcript has the shape of an RL problem before anyone calls it one: action, observation,
+        action, observation. Let a policy model write one side and a world model write the other, and the
+        transcript becomes a cheap training environment. There is an obvious problem. Believable terminal
+        output can still describe a machine that does not exist. <span class="highlight">RL needs
+        consequences. A world model makes them cheaper, and transfer tells us whether they were real enough.</span>
+    </p>
+
+    <nav class="contents" aria-label="Post sections">
+        <p class="contents-title">Sections</p>
+        <ol>
+            <li><a href="#transcript-loop">A transcript is already an RL loop</a></li>
+            <li><a href="#latent-state">The state can be smaller than the scene</a></li>
+            <li><a href="#language-observations">For language agents, the observation is text</a></li>
+            <li><a href="#honest-simulator">Build the smallest honest simulator</a></li>
+            <li><a href="#simulator-errors">RL will find the lie</a></li>
+            <li><a href="#qwen-agentworld">Qwen-AgentWorld is the concrete example</a></li>
+            <li><a href="#transfer">Transfer is the point</a></li>
+        </ol>
+    </nav>
+
+    <figure id="sim-loop-wrap" class="fig">
+        <svg id="sim-loop" viewBox="0 0 800 390" role="img" aria-labelledby="sim-title sim-desc"
+             xmlns="http://www.w3.org/2000/svg">
+            <title id="sim-title">An LLM agent training against an LLM world model</title>
+            <desc id="sim-desc">A policy model sends actions to a separate language world model, which predicts observations. A verifier produces rewards. Real environment anchors train and audit both the simulator and the resulting policy.</desc>
+            <defs>
+                <marker id="sim-arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+                    <path d="M0,0 L7,3 L0,6 Z" fill="#111"/>
+                </marker>
+            </defs>
+
+            <rect x="52" y="112" width="206" height="100" rx="14" fill="#fff" stroke="#111" stroke-width="1.7"/>
+            <text x="155" y="150" text-anchor="middle" font-size="16" font-weight="700" fill="#111">policy LLM</text>
+            <text x="155" y="176" text-anchor="middle" font-size="11.5" fill="#111">reason → tool call / action</text>
+            <text x="155" y="195" text-anchor="middle" font-size="10.5" fill="#111">parameters φ</text>
+
+            <rect x="542" y="112" width="206" height="100" rx="14" fill="#fff" stroke="#111" stroke-width="1.7"/>
+            <text x="645" y="150" text-anchor="middle" font-size="16" font-weight="700" fill="#111">world-model LLM</text>
+            <text x="645" y="176" text-anchor="middle" font-size="11.5" fill="#111">predict next observation</text>
+            <text x="645" y="195" text-anchor="middle" font-size="10.5" fill="#111">parameters θ</text>
+
+            <path d="M258,138 L534,138" stroke="#111" stroke-width="2.2" fill="none" marker-end="url(#sim-arrow)"/>
+            <text x="397" y="124" text-anchor="middle" font-size="11" fill="#111">action a<tspan baseline-shift="sub" font-size="8">t</tspan></text>
+            <path d="M542,188 L266,188" stroke="#111" stroke-width="2.2" stroke-dasharray="7 5" fill="none" marker-end="url(#sim-arrow)"/>
+            <text x="402" y="207" text-anchor="middle" font-size="11" fill="#111">predicted observation ô<tspan baseline-shift="sub" font-size="8">t+1</tspan></text>
+
+            <rect x="310" y="250" width="180" height="70" rx="12" fill="#fff" stroke="#111" stroke-width="1.3"/>
+            <text x="400" y="279" text-anchor="middle" font-size="14" font-weight="700" fill="#111">verifier / reward</text>
+            <text x="400" y="301" text-anchor="middle" font-size="10.5" fill="#111">executable checks + model rubric</text>
+            <path d="M609,214 C586,268 540,282 498,282" fill="none" stroke="#111" stroke-width="1.7" marker-end="url(#sim-arrow)"/>
+            <path d="M310,282 C267,282 218,266 190,218" fill="none" stroke="#111" stroke-width="1.7" marker-end="url(#sim-arrow)"/>
+            <text x="245" y="310" text-anchor="middle" font-size="10" fill="#111">policy update</text>
+
+            <rect x="270" y="18" width="260" height="58" rx="12" fill="#fff" stroke="#111" stroke-width="1.3"/>
+            <text x="400" y="43" text-anchor="middle" font-size="13.5" font-weight="700" fill="#111">real environment anchors</text>
+            <text x="400" y="62" text-anchor="middle" font-size="10.5" fill="#111">real traces · held-out audits</text>
+            <path d="M342,76 C295,90 260,100 224,116" fill="none" stroke="#111" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#sim-arrow)"/>
+            <path d="M458,76 C508,90 540,100 578,116" fill="none" stroke="#111" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#sim-arrow)"/>
+
+            <text x="400" y="365" text-anchor="middle" font-size="11" fill="#111">simulate cheaply; judge transfer in the real world</text>
+        </svg>
+        <figcaption>
+            The policy sends an action to the world model and gets an observation back; a verifier turns that
+            transition into reward. Real interactions provide the original training data and the later audit.
+        </figcaption>
+    </figure>
+
+    <h2 id="transcript-loop" class="section-heading"><span class="num">1.</span> A transcript is already an RL loop</h2>
+    <p>
+        A real terminal has hidden state \(x_t\): files, processes, package versions, permissions. The agent
+        sees only an observation \(o_t\), usually stdout and a prompt. It chooses an action from the visible
+        history \(h_t\), then the machine changes:
+    </p>
+
+    <div class="math-block">
+        \[
+            a_t\sim\pi(\cdot\mid h_t),
+            \qquad
+            x_{t+1}=T(x_t,a_t),
+            \qquad
+            o_{t+1}=G(x_{t+1}).
+        \]
+    </div>
+
+    <p>
+        RL changes the policy \(\pi\) to increase future reward. A world model learns some approximation of
+        \(T\), \(G\), or both. A planner can use that model without learning a persistent policy; a policy can
+        be learned without an explicit model. I keep those pieces separate because they fail differently.
+    </p>
+    <p>
+        Sobal and colleagues compared the two approaches on the same reward-free offline navigation data.
+        Model-free methods won some settings with high-quality data and when trajectories had to be stitched
+        together. A planner backed by JEPA dynamics used sparse data well and generalized better to unseen
+        layouts.<a class="cite" href="#ref-1">1</a> No approach won every setting. The practical choice is
+        when to pay for computation: during policy training or when a planner receives a task.
+    </p>
+
+    <h2 id="latent-state" class="section-heading"><span class="num">2.</span> The state can be smaller than the scene</h2>
+    <p>
+        A video model can predict the next frame. But an agent rarely needs every pixel; it needs enough of
+        the future to choose an action. Joint-embedding predictive
+        architectures, or JEPAs, make this choice explicit. They predict a future representation:
+    </p>
+
+    <div class="math-block">
+        \[
+            z_t=E(o_t),
+            \qquad
+            \hat z_{t+1}=F(z_t,a_t),
+            \qquad
+            \mathcal L_{\mathrm{pred}}=\|\hat z_{t+1}-E(o_{t+1})\|_2^2.
+        \]
+    </div>
+
+    <p>
+        V-JEPA&nbsp;2 is the large version of this bet. Its visual encoder saw more than one million hours of
+        video. The authors then froze that encoder and trained an action-conditioned predictor on
+        less than 62 hours of robot interaction video, without task rewards or success labels. At deployment,
+        a planner searched for actions whose predicted latent endpoint approached a goal image.<a class="cite" href="#ref-2">2</a>
+    </p>
+    <p>
+        Latent prediction has a dull but serious loophole: map every observation to the same vector and the
+        predictor is always right. LeJEPA prevents that collapse with SIGReg, which spreads embeddings toward
+        an isotropic Gaussian.<a class="cite" href="#ref-3">3</a>
+    </p>
+
+    <div class="math-block">
+        \[
+            \mathcal L_{\mathrm{LeJEPA}}
+            =(1-\lambda)\mathcal L_{\mathrm{pred}}
+            +\lambda\,\operatorname{SIGReg}(Z),
+            \qquad
+            Z\approx\mathcal N(0,I).
+        \]
+    </div>
+
+    <p>
+        LeWorldModel carries this recipe into action-conditioned control from raw pixels. The reported model
+        has roughly 15 million parameters and trains from scratch on one GPU. On the paper&rsquo;s control
+        tasks, its planner runs up to \(48\times\) faster than the foundation-model baselines tested there
+        while staying competitive.<a class="cite" href="#ref-4">4</a> These are short-horizon benchmarks.
+        I read the result narrowly: on those tasks, a compact representation made search much cheaper.
+    </p>
+    <p>
+        A recent theory paper studies this geometry under a narrow set of assumptions. With Gaussian data
+        and matching dimensions, LeJEPA recovers the true latent state up to a rotation,
+        \(h(z)=Qz\). Rotations preserve distance, so Euclidean planning still works.<a class="cite" href="#ref-5">5</a>
+        I read the theorem as a design target. Its assumptions describe a clean mathematical setting, and
+        real policy data will be messier.
+    </p>
+
+    <h2 id="language-observations" class="section-heading"><span class="num">3.</span> For language agents, the observation is text</h2>
+    <p>
+        A language environment must emit exact text because text is what the policy consumes. Yet token
+        prediction and state prediction are different jobs. A timestamp can change while the state stays the
+        same; one altered digit in a bank balance can change everything.
+    </p>
+
+    <div class="math-block">
+        \[
+            \mathcal L_{\mathrm{text}}=-\log q(o_{t+1}\mid h_t,a_t),
+            \qquad
+            \mathcal L_{\mathrm{state}}=\|\hat z_{t+1}-z_{t+1}\|_2^2.
+        \]
+    </div>
+
+    <p>
+        CrossBERT separates representation from reconstruction in a text encoder. It reports that masked-token
+        perplexity can improve while frozen BERT features become less useful; the architecture lets a deep
+        encoder build the representation and a smaller predictor handle reconstruction.<a class="cite" href="#ref-6">6</a>
+        LLM-JEPA keeps ordinary next-token training and adds an embedding loss between two views of the same
+        content, such as an issue description and its code change.<a class="cite" href="#ref-7">7</a>
+    </p>
+    <p>
+        Both papers stop short of an agent simulator. My read is simple: keep a compact account of state
+        inside the model, then render the observation the policy needs. The surface can be generative while
+        the state underneath behaves more like a JEPA embedding.
+    </p>
+
+    <h2 id="honest-simulator" class="section-heading"><span class="num">4.</span> Build the smallest honest simulator</h2>
+    <p>
+        A transcript-only model can remember that <code>report.csv</code> was created. That memory breaks when
+        the context is truncated. It can also drift when two tools mutate the same row, and an optimizing
+        policy will eventually find wording that makes the simulator forget. I would keep deterministic state
+        outside the prose whenever possible.
+    </p>
+
+    <div class="prompt-box"><code>contract: Ubuntu shell rooted at /workspace
+initial state: raw.csv exists; report.csv does not
+
+agent:
+  python summarize.py raw.csv --out report.csv
+
+environment:
+  processed 4,812 rows
+  wrote /workspace/report.csv
+  root@sim:/workspace#</code></div>
+
+    <p>
+        The next <code>ls</code> or <code>wc</code> has to agree with that turn. A structured snapshot can own
+        file existence, database constraints, account balances, and cursor position. Let the LLM handle how
+        an error is phrased or how a simulated user responds.
+    </p>
+
+    <div class="math-block">
+        \[
+            x_{t+1}=T_{\mathrm{exec}}(x_t,a_t),
+            \qquad
+            o_{t+1}\sim q(\cdot\mid x_{t+1},h_t),
+            \qquad
+            r_t=V_{\mathrm{exec}}(x_{t+1}).
+        \]
+    </div>
+
+    <p>
+        I would train the simulator from real trajectories. Cut each one just before an environment response,
+        then predict the response and next state. Executable invariants add one more loss:
+    </p>
+
+    <div class="math-block">
+        \[
+            \mathcal L_{\mathrm{sim}}
+            =\mathcal L_{\mathrm{text}}
+            +\lambda_s\mathcal L_{\mathrm{state}}
+            +\lambda_v\mathcal L_{\mathrm{checks}}.
+        \]
+    </div>
+
+    <p>
+        Reinforcement World Model Learning offers another signal when exact wording is unimportant. It scores
+        simulated and real textual states in an embedding space, then uses the sim-to-real gap as an RL reward.
+        The authors report self-supervised gains on ALFWorld and \(\tau^2\)-Bench without expert
+        trajectories.<a class="cite" href="#ref-8">8</a> Embeddings help when two replies mean the same
+        thing. Checksums and account balances still belong in code.
+    </p>
+    <p>
+        Agent World Model pushes the deterministic half further. LLMs synthesize tasks and database-backed
+        tools, while generated code executes each transition and checks the result. The paper reports 1,000
+        such environments.<a class="cite" href="#ref-9">9</a> I would pair that machinery with a language
+        world model: code owns the state; the model owns the observation.
+    </p>
+
+    <h2 id="simulator-errors" class="section-heading"><span class="num">5.</span> RL will find the lie</h2>
+    <p>
+        A held-out next-turn set measures error under the behavior that collected the data. That test goes
+        stale as soon as RL changes the policy. The error we care about now comes from states the new policy
+        visits inside the model:
+    </p>
+
+    <div class="math-block">
+        \[
+            \epsilon(\pi)
+            =\mathbb E_{(h,a)\sim d^\pi}
+            [\,\ell_{\mathrm{sim}}(h,a)\,].
+        \]
+    </div>
+
+    <p>
+        The policy searches for reward, so it also searches the simulator&rsquo;s weak spots. Suppose a simulated
+        shell prints <code>tests passed</code> without changing a file. Once the policy finds that shortcut,
+        thousands of rollouts can teach it to ask for the lie.
+    </p>
+    <p>
+        <em>On Training in Imagination</em> separates reward error from dynamics error. Its detailed bound has
+        a simple shape:<a class="cite" href="#ref-10">10</a>
+    </p>
+
+    <div class="math-block">
+        \[
+            |J_{\mathrm{real}}(\pi)-J_{\mathrm{model}}(\pi)|
+            \le C_r\,\epsilon_{\mathrm{reward}}
+            +C_f\,\epsilon_{\mathrm{dynamics}}.
+        \]
+    </div>
+
+    <p>
+        The coefficients grow with horizon and sensitivity. The same paper also distinguishes zero-mean
+        reward noise from systematic bias. More rollouts can average away noise. They cannot average away a
+        verifier that consistently rewards the wrong behavior.
+    </p>
+
+    <h2 id="qwen-agentworld" class="section-heading"><span class="num">6.</span> Qwen-AgentWorld is the concrete example</h2>
+    <p>
+        Qwen-AgentWorld trains dedicated language world models to predict the next observation from the
+        environment contract, interaction history, and current action.<a class="cite" href="#ref-11">11</a>
+        Its corpus contains more than 10 million real-environment interaction trajectories across seven
+        domains.<a class="cite" href="#ref-11">11</a>
+    </p>
+
+    <div class="domain-row" aria-label="Qwen-AgentWorld domains">
+        <span>MCP</span><span>Search</span><span>Terminal</span><span>SWE</span>
+        <span>Android</span><span>Web</span><span>OS</span>
+    </div>
+
+    <p>
+        Training starts with continual pretraining and supervised fine-tuning, then moves to RL. That last
+        stage combines a five-part rubric with executable rules at a reported \(9{:}1\) weighting. The released 35B-A3B model
+        has 35 billion total parameters with 3 billion active; the paper also evaluates a 397B-A17B version.
+        <a class="cite" href="#ref-11">11</a>
+        Prompts, evaluations, weights, and code are in the
+        <a href="https://github.com/QwenLM/Qwen-AgentWorld" target="_blank" rel="noopener">project repository</a>.
+    </p>
+    <p>
+        The number I care about comes from evaluation outside the simulator. A Qwen3.5 policy trained against
+        Qwen-AgentWorld on 4,000 simulated OpenClaw environments, all absent from world-model training, produced these reported
+        scores:<a class="cite" href="#ref-11">11</a>
+    </p>
+
+    <table class="data">
+        <thead>
+            <tr><th>Policy training</th><th>Claw-Eval</th><th>QwenClawBench</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Base Qwen3.5-35B-A3B</td><td>65.4</td><td>47.9</td></tr>
+            <tr><td>+ Sim RL with Qwen-AgentWorld</td><td>69.7</td><td>55.0</td></tr>
+            <tr><td>Reported change</td><td>+4.3</td><td>+7.1</td></tr>
+        </tbody>
+        <caption>Qwen-AgentWorld v1 results for policies evaluated outside the learned simulator.</caption>
+    </table>
+
+    <p>
+        I found the controlled runs more interesting. The world model could hide a useful search result or
+        force a dependency error. It could also invent a search world and keep it internally consistent. The
+        authors report
+        +12.3 on MCPMark and +16.3 WideSearch F1 under those targeted environments, well above the
+        uncontrolled variants in the same study.<a class="cite" href="#ref-11">11</a>
+    </p>
+    <p>
+        The paper is a new preprint. For now, I would keep those gains tied to that model and those benchmarks.
+        Its own ablations found that native world-model training and explicit control both mattered.
+    </p>
+
+    <h2 id="transfer" class="section-heading"><span class="num">7.</span> Transfer is the point</h2>
+    <p>
+        One-step similarity catches obvious bugs, but a simulator lives or dies over a rollout. The real test
+        is whether training in the model improves behavior in a held-out real or executable world:
+    </p>
+
+    <div class="math-block">
+        \[
+            \Delta_{\mathrm{transfer}}
+            =J_{\mathrm{real}}(\pi_{\mathrm{SimRL}})
+            -J_{\mathrm{real}}(\pi_{\mathrm{base}}).
+        \]
+    </div>
+
+    <p>
+        WebWorld provides another recent data point: an open-web world model trained on more than one million
+        interactions, then used to generate trajectories for web-agent training.<a class="cite" href="#ref-12">12</a>
+        A million interactions buy coverage. Fresh actions from the newest policy expose a different set of
+        simulator errors, and the policy still has to be tested elsewhere.
+    </p>
+    <p>
+        Back to <code>report.csv</code>. A convincing shell transcript is cheap. If practice inside it helps
+        an agent handle the real machine, calling the simulator a world model seems fair. Otherwise, RL has
+        merely learned how to make the fiction pay.
+    </p>
+
+    <div class="references">
+        <h2 class="references-title">References</h2>
+        <ol>
+            <li id="ref-1">Sobal et al., &ldquo;<a href="https://arxiv.org/abs/2502.14819" target="_blank" rel="noopener">Learning from Reward-Free Offline Data: A Case for Planning with Latent Dynamics Models</a>,&rdquo; 2025.</li>
+            <li id="ref-2">Assran et al., &ldquo;<a href="https://arxiv.org/abs/2506.09985" target="_blank" rel="noopener">V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning</a>,&rdquo; 2025.</li>
+            <li id="ref-3">Balestriero &amp; LeCun, &ldquo;<a href="https://arxiv.org/abs/2511.08544" target="_blank" rel="noopener">LeJEPA: Provable and Scalable Self-Supervised Learning Without the Heuristics</a>,&rdquo; 2025.</li>
+            <li id="ref-4">Maes et al., &ldquo;<a href="https://arxiv.org/abs/2603.19312" target="_blank" rel="noopener">LeWorldModel: Stable End-to-End Joint-Embedding Predictive Architecture from Pixels</a>,&rdquo; 2026.</li>
+            <li id="ref-5">Klindt, LeCun &amp; Balestriero, &ldquo;<a href="https://arxiv.org/abs/2605.26379" target="_blank" rel="noopener">When Does LeJEPA Learn a World Model?</a>&rdquo; 2026.</li>
+            <li id="ref-6">Dervishi, Videau &amp; LeCun, &ldquo;<a href="https://arxiv.org/abs/2607.04011" target="_blank" rel="noopener">Separating Representation from Reconstruction Enables Scalable Text Encoders</a>,&rdquo; 2026.</li>
+            <li id="ref-7">Huang, LeCun &amp; Balestriero, &ldquo;<a href="https://arxiv.org/abs/2509.14252" target="_blank" rel="noopener">LLM-JEPA: Large Language Models Meet Joint Embedding Predictive Architectures</a>,&rdquo; 2025.</li>
+            <li id="ref-8">Yu et al., &ldquo;<a href="https://arxiv.org/abs/2602.05842" target="_blank" rel="noopener">Reinforcement World Model Learning for LLM-based Agents</a>,&rdquo; 2026.</li>
+            <li id="ref-9">Wang et al., &ldquo;<a href="https://arxiv.org/abs/2602.10090" target="_blank" rel="noopener">Agent World Model: Infinity Synthetic Environments for Agentic Reinforcement Learning</a>,&rdquo; 2026.</li>
+            <li id="ref-10">Timor et al., &ldquo;<a href="https://arxiv.org/abs/2605.06732" target="_blank" rel="noopener">On Training in Imagination</a>,&rdquo; 2026.</li>
+            <li id="ref-11">Qwen Team, &ldquo;<a href="https://arxiv.org/abs/2606.24597" target="_blank" rel="noopener">Qwen-AgentWorld: Language World Models for General Agents</a>,&rdquo; 2026. <a href="https://github.com/QwenLM/Qwen-AgentWorld" target="_blank" rel="noopener">Code and model release</a>.</li>
+            <li id="ref-12">Xiao et al., &ldquo;<a href="https://arxiv.org/abs/2602.14721" target="_blank" rel="noopener">WebWorld: A Large-Scale World Model for Web Agent Training</a>,&rdquo; 2026.</li>
+        </ol>
+    </div>
+</body>
+</html>
