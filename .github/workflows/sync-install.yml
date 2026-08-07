@@ -1,12 +1,10 @@
 name: Sync install.sh
 
-# Keeps /install on the site in sync with the canonical install.sh in the
-# workbench-cli repo, so the curl one-liner (https://ehq.so/install) is served
-# here without maintaining a second copy by hand. Run it manually any time via
-# the "Run workflow" button.
+# Daily repair check for the event-driven publisher in workbench-cli. Run it
+# manually if /install ever needs to be reconciled with the canonical script.
 on:
   schedule:
-    - cron: "0 * * * *" # hourly
+    - cron: "17 4 * * *"
   workflow_dispatch:
 
 permissions:
@@ -15,6 +13,10 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: sync-installer-fallback
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 
