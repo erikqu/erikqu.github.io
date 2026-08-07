@@ -18,7 +18,7 @@ jobs:
       group: sync-installer-fallback
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Fetch latest install.sh
         run: |
